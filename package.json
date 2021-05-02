@@ -1,7 +1,7 @@
 {
   "name": "webxr-native",
   "version": "0.2.18",
-  "description": "WebXR native polyfill for ",
+  "description": "WebXR native polyfill for iOS and Android via Capacitor and Desktop via Electron.",
   "main": "dist/plugin.js",
   "module": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",
@@ -42,7 +42,7 @@
     "dist/",
     "ios/",
     "android/",
-    "CapacitorPluginAr.podspec"
+    "WebXRNative.podspec"
   ],
   "keywords": [
     "capacitor",
@@ -61,11 +61,11 @@
   "swiftlint": "@ionic/swiftlint-config",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/xr3ngine/xr3ngine.git"
+    "url": "git+https://github.com/XRFoundation/webxr-native.git"
   },
   "bugs": {
-    "url": "https://github.com/xr3ngine/xr3ngine/issues"
+    "url": "https://github.com/XRFoundation/webxr-native/issues"
   },
-  "homepage": "https://github.com/xr3ngine/xr3ngine#readme",
+  "homepage": "https://github.com/XRFoundation/webxr-native#readme",
   "gitHead": "5ff55be1619e188226c4ac91c92a44b7ba18edf4"
 }

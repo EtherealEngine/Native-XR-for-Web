@@ -5,7 +5,7 @@ export default {
   output: {
     file: 'dist/plugin.js',
     format: 'iife',
-    name: 'capacitorPlugin', // TODO: change this
+    name: 'webxrnative',
     globals: {
       '@capacitor/core': 'capacitorExports',
     },
@@ -13,8 +13,6 @@ export default {
   },
   plugins: [
     nodeResolve({
-      // allowlist of dependencies to bundle in
-      // @see https://github.com/rollup/plugins/tree/master/packages/node-resolve#resolveonly
       resolveOnly: ['lodash'],
     }),
   ],
