@@ -715,7 +715,7 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
         MediaController mediaController= new MediaController(getContext());
         mediaController.setAnchorView(videoView);
 
-        String appName = "Example";
+        String appName = (String) (ai != null ? pm.getApplicationLabel(ai) : "Unknown");
         File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), appName);
         String uriPath = mediaStorageDir.getPath()+"/test.mp4";
         //specify the location of media file
