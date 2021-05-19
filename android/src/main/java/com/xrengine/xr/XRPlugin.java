@@ -65,6 +65,8 @@ import static com.xrengine.xr.XRPlugin.SCREEN_RECORD_CODE;
 import static com.xrengine.xr.MediaProjectionHelper.mediaProjection;
 import static com.xrengine.xr.MediaProjectionHelper.data;
 
+import android.view.View;
+
 @NativePlugin(
         permissions = {
                 Manifest.permission.CAMERA,
@@ -140,6 +142,10 @@ public class XRPlugin extends Plugin {
                     Manifest.permission.READ_EXTERNAL_STORAGE
             }, REQUEST_CAMERA_PERMISSION);
         }
+
+        View decorView = getActivity().getWindow().getDecorView();
+        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+        decorView.setSystemUiVisibility(uiOptions);
     }
 
     @PluginMethod()
@@ -164,6 +170,10 @@ public class XRPlugin extends Plugin {
                 }
             }
         });
+
+        View decorView = getActivity().getWindow().getDecorView();
+        int uiOptions = View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+        decorView.setSystemUiVisibility(uiOptions);
     }
 
     @Override
