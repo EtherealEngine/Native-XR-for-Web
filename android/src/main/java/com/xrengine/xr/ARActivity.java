@@ -859,14 +859,15 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
         else if (id == R.id.btn_close_view)
         {
             popupWindow.dismiss();
-            pauseARSession =false;
-            try
-            {
-                session.resume();
-            } catch (CameraNotAvailableException e)
-            {
-                e.printStackTrace();
-            }
+            //need to fix
+            // pauseARSession =false;
+            // try
+            // {
+            //     session.resume();
+            // } catch (CameraNotAvailableException e)
+            // {
+            //     e.printStackTrace();
+            // }
         }
     }
 
