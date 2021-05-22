@@ -35,6 +35,9 @@ import android.widget.MediaController;
 import android.widget.PopupWindow;
 import android.widget.Toast;
 import android.widget.VideoView;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.Context;
 
 
 import com.google.ar.core.Anchor;
@@ -714,6 +717,15 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
 
         MediaController mediaController= new MediaController(getContext());
         mediaController.setAnchorView(videoView);
+
+        final Context appContext = getActivity().getApplicationContext();
+        final PackageManager pm = appContext.getPackageManager();
+         ApplicationInfo ai;
+        try {
+            ai = pm.getApplicationInfo(getActivity().getPackageName(), 0);
+        } catch (final PackageManager.NameNotFoundException e) {
+            ai = null;
+        }
 
         String appName = (String) (ai != null ? pm.getApplicationLabel(ai) : "Unknown");
         File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), appName);
