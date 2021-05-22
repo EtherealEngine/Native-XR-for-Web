@@ -143,9 +143,22 @@ public class XRPlugin extends Plugin {
             }, REQUEST_CAMERA_PERMISSION);
         }
 
-        View decorView = getActivity().getWindow().getDecorView();
-        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
-        decorView.setSystemUiVisibility(uiOptions);
+
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                final int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+
+                View decorView = getActivity().getWindow().getDecorView();
+                int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+                decorView.setSystemUiVisibility(flags);
+            }
+        });
     }
 
     @PluginMethod()
@@ -171,9 +184,14 @@ public class XRPlugin extends Plugin {
             }
         });
 
-        View decorView = getActivity().getWindow().getDecorView();
-        int uiOptions = View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
-        decorView.setSystemUiVisibility(uiOptions);
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                View decorView = getActivity().getWindow().getDecorView();
+                int uiOptions = View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+                decorView.setSystemUiVisibility(uiOptions);
+            }
+        });
     }
 
     @Override
