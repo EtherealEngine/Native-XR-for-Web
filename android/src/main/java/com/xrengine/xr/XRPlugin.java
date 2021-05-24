@@ -173,9 +173,9 @@ public class XRPlugin extends Plugin {
                     getBridge().getWebView().setBackgroundColor(Color.WHITE);
                     FragmentManager fragmentManager = getActivity().getFragmentManager();
                     FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-                    fragmentTransaction.remove(fragment);
-                    fragmentTransaction.commit();
-                    fragment = null;
+                    // fragmentTransaction.remove(fragment);
+                    // fragmentTransaction.commit();
+                    // fragment = null;
 
                     call.success();
                 } else {
