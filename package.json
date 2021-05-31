@@ -28,6 +28,7 @@
     "@capacitor/core": "2.4.7",
     "@ionic/prettier-config": "1.0.1",
     "@rollup/plugin-node-resolve": "11.2.1",
+    "@capacitor/ios": "next",
     "prettier": "2.2.1",
     "rimraf": "3.0.2",
     "swiftlint": "1.0.1",
@@ -40,7 +41,7 @@
     "dist/",
     "ios/",
     "android/",
-    "WebXRNative.podspec"
+    "WebxrNative.podspec"
   ],
   "keywords": [
     "capacitor",
