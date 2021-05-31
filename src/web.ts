@@ -20,7 +20,7 @@ export class XRPluginWeb extends WebPlugin implements XRPluginPlugin {
     return new Promise((resolve, reject) => {
 
       navigator.mediaDevices.getUserMedia({
-        audio:!options.disableAudio,  
+        audio:!options.disableAudio,
         video:true}
       );
 
@@ -136,10 +136,10 @@ export class XRPluginWeb extends WebPlugin implements XRPluginPlugin {
     });
   }
 
-  async stopRecording(options: {}): Promise<{ status: string }> {
+  async stopRecording(options: {}): Promise<{ result: "success", filePath: string; }> {
     console.log("stopRecording called to plugin on web");
     return new Promise((resolve, reject) => {
-      resolve({ status: "success" })
+      resolve({ result: "success", filePath: "" })
     });
   }
 
@@ -221,6 +221,9 @@ export class XRPluginWeb extends WebPlugin implements XRPluginPlugin {
     return new Promise((resolve, reject) => {
       resolve({ status: "success" })
     });
+  }
+
+  clearAnchors(): void {
   }
 }
 

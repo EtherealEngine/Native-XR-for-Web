@@ -184,6 +184,15 @@ export interface VideoEditorVideoInfoDetails {
         bitrate: number
 }
 
+export interface VideoRecordingOptions {
+  isAudio: any,
+  width: number,
+  height: number,
+  bitRate: number,
+  dpi: number,
+  filePath: string
+}
+
 export interface XRPluginPlugin {
     initialize(options: {}): Promise<{ status: string; }>;
 
@@ -192,16 +201,11 @@ export interface XRPluginPlugin {
     
     handleTap(): void;
 
-    startRecording(
-        isAudio: any,
-        width: number,
-        height: number,
-        bitRate: number,
-        dpi: number,
-        filePath: string
-    ): Promise<{ status: string; }>;
+    clearAnchors(): void;
 
-    stopRecording(options: {}): Promise<{ status: string; }>;
+    startRecording(options: VideoRecordingOptions): Promise<{ status: string; }>;
+
+    stopRecording(options: {}): Promise<{ result: "success"; filePath: string }>;
 
     getRecordingStatus(options: {}): Promise<{ status: string; }>;
 

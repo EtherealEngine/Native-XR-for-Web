@@ -65,6 +65,8 @@ import static com.xrengine.xr.XRPlugin.SCREEN_RECORD_CODE;
 import static com.xrengine.xr.MediaProjectionHelper.mediaProjection;
 import static com.xrengine.xr.MediaProjectionHelper.data;
 
+import android.view.View;
+
 @NativePlugin(
         permissions = {
                 Manifest.permission.CAMERA,
@@ -140,6 +142,23 @@ public class XRPlugin extends Plugin {
                     Manifest.permission.READ_EXTERNAL_STORAGE
             }, REQUEST_CAMERA_PERMISSION);
         }
+
+
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                final int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+
+                View decorView = getActivity().getWindow().getDecorView();
+                int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+                decorView.setSystemUiVisibility(flags);
+            }
+        });
     }
 
     @PluginMethod()
@@ -154,14 +173,23 @@ public class XRPlugin extends Plugin {
                     getBridge().getWebView().setBackgroundColor(Color.WHITE);
                     FragmentManager fragmentManager = getActivity().getFragmentManager();
                     FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-                    fragmentTransaction.remove(fragment);
-                    fragmentTransaction.commit();
-                    fragment = null;
+                    // fragmentTransaction.remove(fragment);
+                    // fragmentTransaction.commit();
+                    // fragment = null;
 
                     call.success();
                 } else {
                     call.reject("camera already stopped");
                 }
+            }
+        });
+
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                View decorView = getActivity().getWindow().getDecorView();
+                int uiOptions = View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+                decorView.setSystemUiVisibility(uiOptions);
             }
         });
     }

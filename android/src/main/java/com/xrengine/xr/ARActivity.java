@@ -35,6 +35,9 @@ import android.widget.MediaController;
 import android.widget.PopupWindow;
 import android.widget.Toast;
 import android.widget.VideoView;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.Context;
 
 
 import com.google.ar.core.Anchor;
@@ -715,7 +718,16 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
         MediaController mediaController= new MediaController(getContext());
         mediaController.setAnchorView(videoView);
 
-        String appName = "Example";
+        final Context appContext = getActivity().getApplicationContext();
+        final PackageManager pm = appContext.getPackageManager();
+         ApplicationInfo ai;
+        try {
+            ai = pm.getApplicationInfo(getActivity().getPackageName(), 0);
+        } catch (final PackageManager.NameNotFoundException e) {
+            ai = null;
+        }
+
+        String appName = (String) (ai != null ? pm.getApplicationLabel(ai) : "Unknown");
         File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), appName);
         String uriPath = mediaStorageDir.getPath()+"/test.mp4";
         //specify the location of media file
@@ -859,14 +871,15 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
         else if (id == R.id.btn_close_view)
         {
             popupWindow.dismiss();
-            pauseARSession =false;
-            try
-            {
-                session.resume();
-            } catch (CameraNotAvailableException e)
-            {
-                e.printStackTrace();
-            }
+            //need to fix
+            // pauseARSession =false;
+            // try
+            // {
+            //     session.resume();
+            // } catch (CameraNotAvailableException e)
+            // {
+            //     e.printStackTrace();
+            // }
         }
     }
 
