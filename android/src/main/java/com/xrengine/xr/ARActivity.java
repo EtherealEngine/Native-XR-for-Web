@@ -579,9 +579,10 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
             cameraPoseData[5] = cameraPose.qy();
             cameraPoseData[6] = cameraPose.qz();
 
-            float[] anchorPoseData = new float[7];
+            float[] anchorPoseData = null;
 
             if(anchorPose != null) {
+                anchorPoseData = new float[7];
                 anchorPoseData[0] = anchorPose.tx();
                 anchorPoseData[1] = anchorPose.ty();
                 anchorPoseData[2] = anchorPose.tz();
