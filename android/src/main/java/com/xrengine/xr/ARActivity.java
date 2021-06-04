@@ -85,6 +85,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
 import static com.arthenica.mobileffmpeg.Config.RETURN_CODE_CANCEL;
 import static com.arthenica.mobileffmpeg.Config.RETURN_CODE_SUCCESS;
@@ -141,7 +142,7 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
     // values for AR experiences where users are expected to place objects on surfaces close to the
     // camera. Use larger values for experiences where the user will likely be standing and trying to
     // place an object on the ground or floor in front of them.
-    private static final float APPROXIMATE_DISTANCE_METERS = 2.0f;
+    private static final float APPROXIMATE_DISTANCE_METERS = 30.0f;
 
     // Point Cloud
     private VertexBuffer pointCloudVertexBuffer;
@@ -568,7 +569,7 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
                 return;
             }
 
-            Log.d(TAG, "Sending pose data");
+            //Log.d(TAG, "Sending pose data");
             float[] cameraPoseData = new float[7];
             cameraPoseData[0] = cameraPose.tx();
             cameraPoseData[1] = cameraPose.ty();
@@ -601,11 +602,11 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
     }
 
     // Handle only one tap per frame, as taps are usually low frequency compared to frame rate.
-    public void handleTap(XRPlugin activity) {
+    public int handleTap(XRPlugin activity, float x, float y) {
         this.activity = activity;
         if(camera == null){
-            Log.e(TAG, "Camera object is null, couldn't handle tap");
-            return;
+            Log.e(TAG, "ARActivity.handleTap: Camera object is null, couldn't handle tap");
+            return -1;
         }
 
         CameraIntrinsics ci = camera.getImageIntrinsics();
@@ -616,33 +617,44 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
 
         activity.receiveCameraIntrinsics(focalLength, principalPoint, imageDimensions);
 
+        int hitsCount = 0;
+        int anchorsFound = 0;
         if (camera.getTrackingState() == TrackingState.TRACKING) {
             List<HitResult> hitResultList;
 //            if (instantPlacementSettings.isInstantPlacementEnabled()) {
-                hitResultList = frame.hitTestInstantPlacement(0, 0, APPROXIMATE_DISTANCE_METERS);
+            //hitResultList = frame.hitTestInstantPlacement(x, y, APPROXIMATE_DISTANCE_METERS);
+            Log.e(TAG, "ARActivity.handleTap: use hitTest");
+            hitResultList = frame.hitTest(x, y);
 //            } else {
 //                hitResultList = frame.hitTest(tap);
 //            }
+            hitsCount = hitResultList.size();
+
             for (HitResult hit : hitResultList) {
                 // If any plane, Oriented Point, or Instant Placement Point was hit, create an anchor.
                 Trackable trackable = hit.getTrackable();
+
+                boolean check1 = trackable instanceof Plane
+                        && ((Plane) trackable).isPoseInPolygon(hit.getHitPose())
+                        && (PlaneRenderer.calculateDistanceToPlane(hit.getHitPose(), camera.getPose()) > 0);
+                boolean check2 = trackable instanceof Point
+                        && ((Point) trackable).getOrientationMode()
+                        == OrientationMode.ESTIMATED_SURFACE_NORMAL;
+                boolean check3 = trackable instanceof InstantPlacementPoint;
+
+                Log.e(TAG, String.format(Locale.ENGLISH, "ARActivity.handleTap: hit: %b %b %b", check1, check2, check3));
+
                 if(trackable.getTrackingState() == TrackingState.TRACKING &&
                         trackable.getTrackingState() != TrackingState.STOPPED &&
                         trackable.getTrackingState() != TrackingState.PAUSED) {
-                // If a plane was hit, check that it was hit inside the plane polygon.
-                if ((trackable instanceof Plane
-                        && ((Plane) trackable).isPoseInPolygon(hit.getHitPose())
-                        && (PlaneRenderer.calculateDistanceToPlane(hit.getHitPose(), camera.getPose()) > 0))
-                        || (trackable instanceof Point
-                        && ((Point) trackable).getOrientationMode()
-                        == OrientationMode.ESTIMATED_SURFACE_NORMAL)
-                        || (trackable instanceof InstantPlacementPoint)) {
-                    // Cap the number of objects created. This avoids overloading both the
-                    // rendering system and ARCore.
-                    if (anchors.size() >= 1) {
-
-                        return;
-                    }
+                    // If a plane was hit, check that it was hit inside the plane polygon.
+                    if (check1 || check2 || check3) {
+                        // Cap the number of objects created. This avoids overloading both the
+                        // rendering system and ARCore.
+                        if (anchors.size() >= 1) {
+                            this.clearAnchors();
+//                            return;
+                        }
 
 
                         // Adding an Anchor tells ARCore that it should track this position in
@@ -650,6 +662,9 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
                         // in the correct position relative both to the world and to the plane.
 
                         anchors.add(hit.createAnchor());
+
+                        anchorsFound++;
+                        break;
                     }
                     // For devices that support the Depth API, shows a dialog to suggest enabling
                     // depth-based occlusion. This dialog needs to be spawned on the UI thread.
@@ -657,10 +672,14 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
 
                     // Hits are sorted by depth. Consider only closest hit on a plane, Oriented Point, or
                     // Instant Placement Point.
-                    break;
+                    // break;
                 }
             }
         }
+
+        Log.e(TAG, String.format(Locale.ENGLISH, "ARActivity.handleTap: hits: %d,  anchors: %d", hitsCount, anchorsFound));
+
+        return anchorsFound;
     }
 
 
