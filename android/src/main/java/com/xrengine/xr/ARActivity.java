@@ -159,6 +159,7 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
     // Virtual object (ARCore pawn)
     private Mesh virtualObjectMesh;
     private Shader virtualObjectShader;
+    private final float[] hitTestRequestedCoordinates = new float[2];
     private final ArrayList<Anchor> anchors = new ArrayList<>();
 
     // Temporary matrix allocated here to reduce number of allocations for each frame.
@@ -465,6 +466,17 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
             }
         }
 
+        // handle hit test, to add anchor
+        if (hitTestRequestedCoordinates[0] >= 0) {
+            float x = hitTestRequestedCoordinates[0];
+            float y = hitTestRequestedCoordinates[1];
+
+            this.hitTest(x, y);
+
+            // reset coordinates
+            hitTestRequestedCoordinates[0] = -1;
+            hitTestRequestedCoordinates[1] = -1;
+        }
 
         // Show a message based on whether tracking has failed, if planes are detected, and if the user
         // has placed any objects.
@@ -595,37 +607,15 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
         }
     }
 
-    private XRPlugin activity = null;
-
-    public void clearAnchors(){
-        anchors.get(0).detach();
-        anchors.remove(0);
-    }
-
-    // Handle only one tap per frame, as taps are usually low frequency compared to frame rate.
-    public int handleTap(XRPlugin activity, float x, float y) {
-        this.activity = activity;
-        if(camera == null){
-            Log.e(TAG, "ARActivity.handleTap: Camera object is null, couldn't handle tap");
-            return -1;
-        }
-
-        CameraIntrinsics ci = camera.getImageIntrinsics();
-        float[] focalLength = ci.getFocalLength();
-        float[] principalPoint = ci.getPrincipalPoint();
-        int[] imageDimensions = ci.getImageDimensions();
-
-
-        activity.receiveCameraIntrinsics(focalLength, principalPoint, imageDimensions);
+    private void hitTest(float x, float y) {
+        Log.e(TAG, String.format(Locale.ENGLISH, "ARActivity.handleTap: check coords %8.2f, %8.2f", x, y));
 
         int hitsCount = 0;
         int anchorsFound = 0;
         if (camera.getTrackingState() == TrackingState.TRACKING) {
             List<HitResult> hitResultList;
 //            if (instantPlacementSettings.isInstantPlacementEnabled()) {
-            //hitResultList = frame.hitTestInstantPlacement(x, y, APPROXIMATE_DISTANCE_METERS);
-            Log.e(TAG, "ARActivity.handleTap: use hitTest");
-            hitResultList = frame.hitTest(x, y);
+            hitResultList = frame.hitTestInstantPlacement(x, y, APPROXIMATE_DISTANCE_METERS);
 //            } else {
 //                hitResultList = frame.hitTest(tap);
 //            }
@@ -645,7 +635,7 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
 
                 Log.e(TAG, String.format(Locale.ENGLISH, "ARActivity.handleTap: hit: %b %b %b", check1, check2, check3));
 
-                if(trackable.getTrackingState() == TrackingState.TRACKING &&
+                if (trackable.getTrackingState() == TrackingState.TRACKING &&
                         trackable.getTrackingState() != TrackingState.STOPPED &&
                         trackable.getTrackingState() != TrackingState.PAUSED) {
                     // If a plane was hit, check that it was hit inside the plane polygon.
@@ -679,8 +669,26 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
         }
 
         Log.e(TAG, String.format(Locale.ENGLISH, "ARActivity.handleTap: hits: %d,  anchors: %d", hitsCount, anchorsFound));
+    }
 
-        return anchorsFound;
+    private XRPlugin activity = null;
+
+    public void clearAnchors(){
+        anchors.get(0).detach();
+        anchors.remove(0);
+    }
+
+    // Handle only one tap per frame, as taps are usually low frequency compared to frame rate.
+    public void handleTap(XRPlugin activity, float x, float y) {
+        this.activity = activity;
+        if(camera == null){
+            Log.e(TAG, "ARActivity.handleTap: Camera object is null, couldn't handle tap");
+            return;
+        }
+
+        // this coordinates will be handled on next update in onDrawFrame
+        hitTestRequestedCoordinates[0] = x;
+        hitTestRequestedCoordinates[1] = y;
     }
 
 
