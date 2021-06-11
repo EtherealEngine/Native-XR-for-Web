@@ -157,9 +157,9 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
     // Virtual object (ARCore pawn)
     private Mesh virtualObjectMesh;
     private Shader virtualObjectShader;
-    private final ArrayList<Anchor> anchors = new ArrayList<>();
     private final float[] hitTestRequestedCoordinates = new float[2];
-
+    private final ArrayList<Anchor> anchors = new ArrayList<>();
+    
     // Temporary matrix allocated here to reduce number of allocations for each frame.
     private final float[] modelMatrix = new float[16];
     private final float[] viewMatrix = new float[16];
