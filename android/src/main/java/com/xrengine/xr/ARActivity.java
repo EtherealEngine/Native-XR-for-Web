@@ -140,7 +140,7 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
     // values for AR experiences where users are expected to place objects on surfaces close to the
     // camera. Use larger values for experiences where the user will likely be standing and trying to
     // place an object on the ground or floor in front of them.
-    private static final float APPROXIMATE_DISTANCE_METERS = 2.0f;
+    private static final float APPROXIMATE_DISTANCE_METERS = 30.0f;
 
     // Point Cloud
     private VertexBuffer pointCloudVertexBuffer;
