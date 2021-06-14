@@ -109,18 +109,7 @@ public class XRPlugin extends Plugin {
         final float x = call.getFloat("x", 0f);
         final float y = call.getFloat("y", 0f);
 
-//        Toast t = Toast.makeText(getContext(), String.format(Locale.ENGLISH, "Tapped at '%8.2f', '%8.2f'", x, y), Toast.LENGTH_SHORT);
-//        t.show();
-
-        int anchorsFound = fragment.handleTap(this, x, y);
-        JSObject ret = new JSObject();
-        ret.put("x", x);
-        ret.put("y", y);
-        ret.put("anchors found", anchorsFound);
-        call.success(ret);
-
-        Toast t2 = Toast.makeText(getContext(), String.format(Locale.ENGLISH, "Tap anchors %d", anchorsFound), Toast.LENGTH_SHORT);
-        t2.show();
+        fragment.handleTap(this, x, y);
     }
 
     @PluginMethod()
