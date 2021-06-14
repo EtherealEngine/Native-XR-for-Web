@@ -30,6 +30,9 @@ import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
+import com.arthenica.ffmpegkit.FFmpegKit;
+import com.arthenica.ffmpegkit.FFmpegSession;
+import com.arthenica.ffmpegkit.ReturnCode;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -87,15 +90,80 @@ public class XRPlugin extends Plugin {
 
     private ARActivity fragment;
     private int containerViewId = 20;
+    private String VideoIn;
+    private File AudioOut;
+    private String AudioResult;
+    private File AudioIn;
+    private String AudioOutPut;
+
+    @PluginMethod()
+    public void accessPermission (PluginCall call) {
+
+        saveCall(call);
+        if (hasRequiredPermissions()) {
+            Log.d("XRPLUGIN","Permission is OK");
+        } else {
+            Log.d("XRPLUGIN", "Couldn't start camera");
+
+            pluginRequestPermissions(new String[]{
+                    Manifest.permission.CAMERA,
+                    Manifest.permission.RECORD_AUDIO,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+            }, REQUEST_CAMERA_PERMISSION);
+        }
+
+        Intent serviceIntent = new Intent(getContext(), MediaProjectionHelperService.class);
+        serviceIntent.putExtra("inputExtra", "asdf");
+        ContextCompat.startForegroundService(getContext(), serviceIntent);
+        call.success();
+    }
+
+    @PluginMethod()
+    public void uploadFiles(PluginCall callbackContext) {
+        Log.d("XRPLUGIN", "Upload Files");
+
+    
+        this.callbackContext = callbackContext;
+        String audioPath = callbackContext.getString("audioPath");
+        String audioId = callbackContext.getString("audioId");
+
+        VideoIn = audioPath;
+        AudioOut = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES);
+        AudioResult =  Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES) + "/" + audioId + ".aac";
+        boolean f = new File(AudioResult).isFile();
+        Log.d("XRPLUGIN", String.valueOf(f));
+
+
+
+        if (f == false) {
+            FFmpegSession session = FFmpegKit.execute("-i " + VideoIn + " -vn -acodec copy " + AudioOut + "/" + audioId + ".aac");
+
+            if (ReturnCode.isSuccess(session.getReturnCode())) {
+
+                Log.d(TAG, String.format("SUCESS", session.getState(), session.getReturnCode(), session.getFailStackTrace()));
+
+            } else if (ReturnCode.isCancel(session.getReturnCode())) {
+
+                Log.d(TAG, String.format("CANCEL", session.getState(), session.getReturnCode(), session.getFailStackTrace()));
+
+            } else {
+                // FAILURE
+                Log.d(TAG, String.format("Command failed with state %s and rc %s.%s", session.getState(), session.getReturnCode(), session.getFailStackTrace()));
+            }
+            FFmpegKit.cancel();
+        }
+        callbackContext.success();
+    }
 
     @PluginMethod()
     public void initialize(PluginCall call) {
         Log.d("XRPLUGIN", "Initializing");
 
         //Start the service to get screen recording permission
-        Intent serviceIntent = new Intent(getContext(), MediaProjectionHelperService.class);
-        serviceIntent.putExtra("inputExtra", "asdf");
-        ContextCompat.startForegroundService(getContext(), serviceIntent);
+        // Intent serviceIntent = new Intent(getContext(), MediaProjectionHelperService.class);
+        // serviceIntent.putExtra("inputExtra", "asdf");
+        // ContextCompat.startForegroundService(getContext(), serviceIntent);
 
         JSObject ret = new JSObject();
         ret.put("status", "native");
@@ -105,7 +173,6 @@ public class XRPlugin extends Plugin {
     @PluginMethod()
     public void handleTap(PluginCall call){
         saveCall(call);
-
         final float x = call.getFloat("x", 0f);
         final float y = call.getFloat("y", 0f);
 
@@ -940,6 +1007,10 @@ public class XRPlugin extends Plugin {
     @PluginMethod
     public void stopRecording(PluginCall callbackContext) {
 
+        this.callbackContext = callbackContext;
+        String audioId = callbackContext.getString("audioId");
+
+
         if(screenRecord != null){
 
             Intent serviceIntent = new Intent(getContext(), MediaProjectionHelperService.class);
@@ -961,14 +1032,40 @@ public class XRPlugin extends Plugin {
 
             File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), appName);
 
-            callbackContext.success(new JSObject().put("result", "success").put("filePath", mediaStorageDir.getPath() + filePath));
+            
 
             saveImageFromResourceId(R.drawable.watermark,mediaStorageDir.getPath(),"watermark.png");
+
+            VideoIn  = mediaStorageDir.getPath() + filePath;
+            AudioIn = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES) + "/" + audioId + ".aac");
+            AudioOutPut = mediaStorageDir.getPath() + "/output.mp4";
+            
+            FFmpegSession session = FFmpegKit.execute("-i " + VideoIn + " -stream_loop -1 -i " + AudioIn + " -map 0 -map 1:a -c:v copy -shortest " + AudioOutPut + " -y");
+            
+                if (ReturnCode.isSuccess(session.getReturnCode())) {
+    
+                    Log.d(TAG, String.format("SUCESS", session.getState(), session.getReturnCode(), session.getFailStackTrace()));
+    
+                  } else if (ReturnCode.isCancel(session.getReturnCode())) {
+    
+                    Log.d(TAG, String.format("CANCEL", session.getState(), session.getReturnCode(), session.getFailStackTrace()));
+    
+                 } else {
+                    // FAILURE
+                    Log.d(TAG, String.format("Command failed with state %s and rc %s.%s", session.getState(), session.getReturnCode(), session.getFailStackTrace()));
+                 }
 
             //WatermarkManager.addWatermark(mediaStorageDir.getPath() + filePath,mediaStorageDir.getPath()+"/watermark.png",true);
             //WatermarkManager.trimVideo(mediaStorageDir.getPath() + filePath,0,0,0,2,true);
             //show recored video
-            fragment.showVideo(mediaStorageDir.getPath() + filePath,mediaStorageDir.getPath()+"/watermark.png");
+            FFmpegKit.cancel();
+
+            callbackContext.success(new JSObject().put("result", "success").put("filePath", AudioOutPut));
+
+            //WatermarkManager.addWatermark(mediaStorageDir.getPath() + filePath,mediaStorageDir.getPath()+"/watermark.png",true);
+            //WatermarkManager.trimVideo(mediaStorageDir.getPath() + filePath,0,0,0,2,true);
+            //show recored video
+            // fragment.showVideo(mediaStorageDir.getPath() + filePath,mediaStorageDir.getPath()+"/watermark.png");
         }else {
             callbackContext.error("no ScreenRecord in process XX");
         }

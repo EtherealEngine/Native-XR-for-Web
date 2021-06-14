@@ -87,8 +87,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
-import static com.arthenica.mobileffmpeg.Config.RETURN_CODE_CANCEL;
-import static com.arthenica.mobileffmpeg.Config.RETURN_CODE_SUCCESS;
+//import static com.arthenica.mobileffmpeg.Config.RETURN_CODE_CANCEL;
+//import static com.arthenica.mobileffmpeg.Config.RETURN_CODE_SUCCESS;
 
 /**
  * This is a simple example that shows how to create an augmented reality (AR) application using the
@@ -914,24 +914,24 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
     @Override
     public void watermarkStatus(int code)
     {
-        if(code == RETURN_CODE_SUCCESS)
-        {
-            // watermark addition succeeded
-            Intent sendIntent = new Intent(Intent.ACTION_SEND);
-            sendIntent.setType("video/mp4");
-            sendIntent.putExtra(Intent.EXTRA_SUBJECT, "Video");
-            sendIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse(watermarkedFilePath));
-            sendIntent.putExtra(Intent.EXTRA_TEXT, "Enjoy the Video");
-            startActivity(Intent.createChooser(sendIntent, "Email:"));
-        }
-        else if(code == RETURN_CODE_CANCEL)
-        {
-            // watermark addition cancelled
-        }
-        else
-        {
-            // watermark addtion failed with code
-        }
+//        if(code == RETURN_CODE_SUCCESS)
+//        {
+//            // watermark addition succeeded
+//            Intent sendIntent = new Intent(Intent.ACTION_SEND);
+//            sendIntent.setType("video/mp4");
+//            sendIntent.putExtra(Intent.EXTRA_SUBJECT, "Video");
+//            sendIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse(watermarkedFilePath));
+//            sendIntent.putExtra(Intent.EXTRA_TEXT, "Enjoy the Video");
+//            startActivity(Intent.createChooser(sendIntent, "Email:"));
+//        }
+//        else if(code == RETURN_CODE_CANCEL)
+//        {
+//            // watermark addition cancelled
+//        }
+//        else
+//        {
+//            // watermark addtion failed with code
+//        }
     }
 
     @Override
