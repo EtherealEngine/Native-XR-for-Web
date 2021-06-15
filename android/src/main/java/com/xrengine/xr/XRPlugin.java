@@ -64,6 +64,7 @@ import androidx.core.content.ContextCompat;
 import static android.app.Activity.RESULT_OK;
 import static android.content.Context.MEDIA_PROJECTION_SERVICE;
 import static com.xrengine.xr.XRPlugin.SCREEN_RECORD_CODE;
+import static com.xrengine.xr.XRPlugin.REQUEST_FS_PERMISSION;
 
 import static com.xrengine.xr.MediaProjectionHelper.mediaProjection;
 import static com.xrengine.xr.MediaProjectionHelper.data;
@@ -80,11 +81,13 @@ import android.view.View;
         },
         requestCodes = {
                 CameraPreview.REQUEST_CAMERA_PERMISSION,
-                SCREEN_RECORD_CODE
+                SCREEN_RECORD_CODE,
+                REQUEST_FS_PERMISSION
         }
 )
 public class XRPlugin extends Plugin {
     static final int REQUEST_CAMERA_PERMISSION = 1234;
+    static final int REQUEST_FS_PERMISSION = 1235;
     private static String VIDEO_FILE_PATH = "";
     private static String VIDEO_FILE_EXTENSION = ".mp4";
 
@@ -95,27 +98,32 @@ public class XRPlugin extends Plugin {
     private String AudioResult;
     private File AudioIn;
     private String AudioOutPut;
+    
 
     @PluginMethod()
     public void accessPermission (PluginCall call) {
 
         saveCall(call);
+      
         if (hasRequiredPermissions()) {
-            Log.d("XRPLUGIN","Permission is OK");
+            
+            Log.d("XRPLUGIN", "Permissions for audio is Ok");
         } else {
-            Log.d("XRPLUGIN", "Couldn't start camera");
-
-            pluginRequestPermissions(new String[]{
-                    Manifest.permission.CAMERA,
-                    Manifest.permission.RECORD_AUDIO,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                    Manifest.permission.READ_EXTERNAL_STORAGE
-            }, REQUEST_CAMERA_PERMISSION);
+            Log.d("XRPLUGIN", "Start camera with request");
+            pluginRequestAllPermissions();
         }
+       
+        // // if() {
+        // //     Log.d("XRPLUGIN", "Permission is OK");
+        // // }else {
+        //     pluginRequestPermissions(new String[]{
+        //             Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        //             Manifest.permission.READ_EXTERNAL_STORAGE
+        //     }, REQUEST_FS_PERMISSION);
+        // // }
+      
+    
 
-        Intent serviceIntent = new Intent(getContext(), MediaProjectionHelperService.class);
-        serviceIntent.putExtra("inputExtra", "asdf");
-        ContextCompat.startForegroundService(getContext(), serviceIntent);
         call.success();
     }
 
@@ -161,9 +169,9 @@ public class XRPlugin extends Plugin {
         Log.d("XRPLUGIN", "Initializing");
 
         //Start the service to get screen recording permission
-        // Intent serviceIntent = new Intent(getContext(), MediaProjectionHelperService.class);
-        // serviceIntent.putExtra("inputExtra", "asdf");
-        // ContextCompat.startForegroundService(getContext(), serviceIntent);
+        Intent serviceIntent = new Intent(getContext(), MediaProjectionHelperService.class);
+        serviceIntent.putExtra("inputExtra", "asdf");
+        ContextCompat.startForegroundService(getContext(), serviceIntent);
 
         JSObject ret = new JSObject();
         ret.put("status", "native");
@@ -200,18 +208,21 @@ public class XRPlugin extends Plugin {
 
         if (hasRequiredPermissions()) {
             startCamera(call);
+            Log.d("XRPLUGIN", "Permissions is Ok");
         } else {
-            Log.d("XRPLUGIN", "Couldn't start camera");
+            Log.d("XRPLUGIN", "Start camera with request");
+            pluginRequestAllPermissions();
 
-            pluginRequestPermissions(new String[]{
-                    Manifest.permission.CAMERA,
-                    Manifest.permission.RECORD_AUDIO,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                    Manifest.permission.READ_EXTERNAL_STORAGE
-            }, REQUEST_CAMERA_PERMISSION);
+            // pluginRequestPermissions(new String[]{
+            //         Manifest.permission.CAMERA,
+            //         Manifest.permission.RECORD_AUDIO,
+            //         // Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            //         // Manifest.permission.READ_EXTERNAL_STORAGE
+            // }, REQUEST_CAMERA_PERMISSION);
         }
+           
 
-
+    
         getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -229,23 +240,65 @@ public class XRPlugin extends Plugin {
         });
     }
 
+    // @PluginMethod()
+    // public void stop(final PluginCall call) {
+    //     bridge.getActivity().runOnUiThread(new Runnable() {
+    //         @Override
+    //         public void run() {
+    //             FrameLayout containerView = getBridge().getActivity().findViewById(containerViewId);
+
+    //             if (containerView != null) {
+    //                 ((ViewGroup)getBridge().getWebView().getParent()).removeView(containerView);
+    //                 getBridge().getWebView().setBackgroundColor(Color.WHITE);
+    //                 // FragmentManager fragmentManager = getActivity().getFragmentManager();
+    //                 // FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+    //                 // fragmentTransaction.remove(fragment);
+    //                 // fragmentTransaction.commit();
+    //                 // fragment = null;
+                   
+
+    //                 call.success();
+    //             } else {
+    //                 call.reject("camera already stopped");
+    //             }
+    //         }
+    //     });
+
+    //     getActivity().runOnUiThread(new Runnable() {
+    //         @Override
+    //         public void run() {
+    //             View decorView = getActivity().getWindow().getDecorView();
+    //             int uiOptions = View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+    //             decorView.setSystemUiVisibility(uiOptions);
+    //         }
+    //     });
+    // }
+
     @PluginMethod()
     public void stop(final PluginCall call) {
+        Log.d("Method","awdawgdawjhdgajwhdgawjh");
         bridge.getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 FrameLayout containerView = getBridge().getActivity().findViewById(containerViewId);
 
                 if (containerView != null) {
+
                     ((ViewGroup)getBridge().getWebView().getParent()).removeView(containerView);
                     getBridge().getWebView().setBackgroundColor(Color.WHITE);
-                    // FragmentManager fragmentManager = getActivity().getFragmentManager();
-                    // FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-                    // fragmentTransaction.remove(fragment);
-                    // fragmentTransaction.commit();
-                    // fragment = null;
+                    FragmentManager fragmentManager = getActivity().getFragmentManager();
+                    FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
 
                     call.success();
+                    if(fragment != null){
+                        fragment.stopSession();
+                    }
+
+                    fragmentTransaction.remove(fragment);
+
+
+
+
                 } else {
                     call.reject("camera already stopped");
                 }
@@ -260,6 +313,14 @@ public class XRPlugin extends Plugin {
                 decorView.setSystemUiVisibility(uiOptions);
             }
         });
+
+        bridge.onDestroy();
+
+        getActivity().getApplicationContext().getCacheDir().delete();
+
+        System.gc();
+        System.runFinalization();
+        super.handleOnDestroy();
     }
 
     @Override
@@ -275,7 +336,23 @@ public class XRPlugin extends Plugin {
 
             PluginCall savedCall = getSavedCall();
             if (permissionsGranted) {
-                startCamera(savedCall);
+                 startCamera(savedCall);
+            } else {
+                savedCall.reject("permission failed");
+            }
+        }
+
+        if (requestCode == REQUEST_FS_PERMISSION) {
+            boolean permissionsGranted = true;
+            for (int grantResult: grantResults) {
+                if (grantResult != 0) {
+                    permissionsGranted = false;
+                }
+            }
+
+            PluginCall savedCall = getSavedCall();
+            if (permissionsGranted) {
+                Log.d("XRPLUGIN", "FS REQUEST");
             } else {
                 savedCall.reject("permission failed");
             }
