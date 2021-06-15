@@ -109,7 +109,7 @@ public class XRPlugin extends Plugin {
             
             Log.d("XRPLUGIN", "Permissions for audio is Ok");
         } else {
-            Log.d("XRPLUGIN", "Start camera with request");
+            Log.d("XRPLUGIN", "Starting for requests");
             pluginRequestAllPermissions();
         }
        
