@@ -77,7 +77,7 @@ import android.view.View;
                 Manifest.permission.RECORD_AUDIO,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.SYSTEM_ALERT_WINDOW
+             // Manifest.permission.SYSTEM_ALERT_WINDOW
         },
         requestCodes = {
                 CameraPreview.REQUEST_CAMERA_PERMISSION,
