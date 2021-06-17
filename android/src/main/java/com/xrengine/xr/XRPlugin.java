@@ -1086,7 +1086,9 @@ public class XRPlugin extends Plugin {
 
         this.callbackContext = callbackContext;
         String audioId = callbackContext.getString("audioId");
-
+        double videoDelay = callbackContext.getDouble("videoDelay");
+        Log.d(TAG, "IS VideoDelay:" + videoDelay);
+  
 
         if(screenRecord != null){
 
@@ -1117,7 +1119,7 @@ public class XRPlugin extends Plugin {
             AudioIn = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES) + "/" + audioId + ".aac");
             AudioOutPut = mediaStorageDir.getPath() + "/output.mp4";
             
-            FFmpegSession session = FFmpegKit.execute("-i " + VideoIn + " -stream_loop -1 -i " + AudioIn + " -map 0 -map 1:a -c:v copy -shortest " + AudioOutPut + " -y");
+            FFmpegSession session = FFmpegKit.execute("-i " + VideoIn + " -itsoffset " + videoDelay + " -stream_loop -1 -i " + AudioIn + " -map 0 -map 1:a -c:v copy -async 1 -shortest " + AudioOutPut + " -y");
             
                 if (ReturnCode.isSuccess(session.getReturnCode())) {
     
