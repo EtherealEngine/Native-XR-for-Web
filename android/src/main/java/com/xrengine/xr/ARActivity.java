@@ -678,6 +678,18 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
         anchors.remove(0);
     }
 
+    public void stopSession() {
+        Log.d("onDestroy","DESTROY SESSION");
+        if (session != null) {
+            // Explicitly close ARCore Session to release native resources.
+            // Review the API reference for important considerations before calling close() in apps with
+            // more complicated lifecycle requirements:
+            // https://developers.google.com/ar/reference/java/arcore/reference/com/google/ar/core/Session#close()
+            session.close();
+            session = null;
+        }
+    }
+
     // Handle only one tap per frame, as taps are usually low frequency compared to frame rate.
     public void handleTap(XRPlugin activity, float x, float y) {
         this.activity = activity;
@@ -899,6 +911,7 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
         else if (id == R.id.btn_close_view)
         {
             popupWindow.dismiss();
+            session.close();
             //need to fix
             // pauseARSession =false;
             // try
