@@ -406,7 +406,7 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
     Camera camera = null;
     Frame frame = null;
     Pose cameraPose;
-    Pose anchorPose;
+    Pose anchorPose = null;
 
     @Override
     public void onDrawFrame(SampleRender render) {
@@ -609,7 +609,12 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
     }
 
     private void hitTest(float x, float y) {
-        Log.e(TAG, String.format(Locale.ENGLISH, "ARActivity.handleTap: check coords %8.2f, %8.2f", x, y));
+        Log.e(TAG, String.format(Locale.ENGLISH, "ARActivity.hitTest: check coords %8.2f, %8.2f", x, y));
+
+        if(camera == null){
+            Log.e(TAG, "ARActivity.hitTest: Camera object is null!?, couldn't handle tap");
+            return;
+        }
 
         int hitsCount = 0;
         int anchorsFound = 0;
@@ -694,10 +699,6 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
     // Handle only one tap per frame, as taps are usually low frequency compared to frame rate.
     public void handleTap(XRPlugin activity, float x, float y) {
         this.activity = activity;
-        if(camera == null){
-            Log.e(TAG, "ARActivity.handleTap: Camera object is null, couldn't handle tap");
-            return;
-        }
 
         // this coordinates will be handled on next update in onDrawFrame
         hitTestRequestedCoordinates[0] = x;
