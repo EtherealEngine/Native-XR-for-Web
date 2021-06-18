@@ -525,22 +525,23 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
 
         // Visualize tracked points.
         // Use try-with-resources to automatically release the point cloud.
-        try (PointCloud pointCloud = frame.acquirePointCloud()) {
-            if (pointCloud.getTimestamp() > lastPointCloudTimestamp) {
-                pointCloudVertexBuffer.set(pointCloud.getPoints());
-                lastPointCloudTimestamp = pointCloud.getTimestamp();
-            }
-            Matrix.multiplyMM(modelViewProjectionMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
-            pointCloudShader.setMat4("u_ModelViewProjection", modelViewProjectionMatrix);
-            render.draw(pointCloudMesh, pointCloudShader);
-        }
+        // TODO make them optional
+//        try (PointCloud pointCloud = frame.acquirePointCloud()) {
+//            if (pointCloud.getTimestamp() > lastPointCloudTimestamp) {
+//                pointCloudVertexBuffer.set(pointCloud.getPoints());
+//                lastPointCloudTimestamp = pointCloud.getTimestamp();
+//            }
+//            Matrix.multiplyMM(modelViewProjectionMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
+//            pointCloudShader.setMat4("u_ModelViewProjection", modelViewProjectionMatrix);
+//            render.draw(pointCloudMesh, pointCloudShader);
+//        }
 
         // Visualize planes.
-        planeRenderer.drawPlanes(
-                render,
-                session.getAllTrackables(Plane.class),
-                camera.getDisplayOrientedPose(),
-                projectionMatrix);
+//         planeRenderer.drawPlanes(
+//                 render,
+//                 session.getAllTrackables(Plane.class),
+//                 camera.getDisplayOrientedPose(),
+//                 projectionMatrix);
 
         // -- Draw occluded virtual objects
 
