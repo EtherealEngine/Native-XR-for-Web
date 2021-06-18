@@ -77,7 +77,7 @@ import android.view.View;
                 Manifest.permission.RECORD_AUDIO,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 Manifest.permission.READ_EXTERNAL_STORAGE,
-             // Manifest.permission.SYSTEM_ALERT_WINDOW
+                // Manifest.permission.SYSTEM_ALERT_WINDOW
         },
         requestCodes = {
                 CameraPreview.REQUEST_CAMERA_PERMISSION,
@@ -98,7 +98,7 @@ public class XRPlugin extends Plugin {
     private String AudioResult;
     private File AudioIn;
     private String AudioOutPut;
-    
+
 
     @PluginMethod()
     public void accessPermission (PluginCall call) {
@@ -109,7 +109,7 @@ public class XRPlugin extends Plugin {
             
             Log.d("XRPLUGIN", "Permissions for audio is Ok");
         } else {
-            Log.d("XRPLUGIN", "Starting for requests");
+            Log.d("XRPLUGIN", "Start camera with request");
             pluginRequestAllPermissions();
         }
        
@@ -169,9 +169,11 @@ public class XRPlugin extends Plugin {
         Log.d("XRPLUGIN", "Initializing");
 
         //Start the service to get screen recording permission
+       
         Intent serviceIntent = new Intent(getContext(), MediaProjectionHelperService.class);
         serviceIntent.putExtra("inputExtra", "asdf");
         ContextCompat.startForegroundService(getContext(), serviceIntent);
+        
 
         JSObject ret = new JSObject();
         ret.put("status", "native");
@@ -295,8 +297,6 @@ public class XRPlugin extends Plugin {
                     }
 
                     fragmentTransaction.remove(fragment);
-
-
 
 
                 } else {
@@ -1087,8 +1087,10 @@ public class XRPlugin extends Plugin {
         this.callbackContext = callbackContext;
         String audioId = callbackContext.getString("audioId");
         double videoDelay = callbackContext.getDouble("videoDelay");
+        String clipTitle = callbackContext.getString("clipTitle");
+        String clipTime = callbackContext.getString("clipTime");
         Log.d(TAG, "IS VideoDelay:" + videoDelay);
-  
+
 
         if(screenRecord != null){
 
@@ -1117,7 +1119,7 @@ public class XRPlugin extends Plugin {
 
             VideoIn  = mediaStorageDir.getPath() + filePath;
             AudioIn = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES) + "/" + audioId + ".aac");
-            AudioOutPut = mediaStorageDir.getPath() + "/output.mp4";
+            AudioOutPut = mediaStorageDir.getPath() + "/" + clipTitle + clipTime + ".mp4";
             
             FFmpegSession session = FFmpegKit.execute("-i " + VideoIn + " -itsoffset " + videoDelay + " -stream_loop -1 -i " + AudioIn + " -map 0 -map 1:a -c:v copy -async 1 -shortest " + AudioOutPut + " -y");
             
