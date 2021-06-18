@@ -99,20 +99,17 @@ public class XRPlugin extends Plugin {
     private File AudioIn;
     private String AudioOutPut;
 
-
     @PluginMethod()
     public void accessPermission (PluginCall call) {
-
         saveCall(call);
-      
+
         if (hasRequiredPermissions()) {
-            
             Log.d("XRPLUGIN", "Permissions for audio is Ok");
         } else {
             Log.d("XRPLUGIN", "Start camera with request");
             pluginRequestAllPermissions();
         }
-       
+
         // // if() {
         // //     Log.d("XRPLUGIN", "Permission is OK");
         // // }else {
@@ -121,8 +118,6 @@ public class XRPlugin extends Plugin {
         //             Manifest.permission.READ_EXTERNAL_STORAGE
         //     }, REQUEST_FS_PERMISSION);
         // // }
-      
-    
 
         call.success();
     }
@@ -131,7 +126,6 @@ public class XRPlugin extends Plugin {
     public void uploadFiles(PluginCall callbackContext) {
         Log.d("XRPLUGIN", "Upload Files");
 
-    
         this.callbackContext = callbackContext;
         String audioPath = callbackContext.getString("audioPath");
         String audioId = callbackContext.getString("audioId");
@@ -222,9 +216,7 @@ public class XRPlugin extends Plugin {
             //         // Manifest.permission.READ_EXTERNAL_STORAGE
             // }, REQUEST_CAMERA_PERMISSION);
         }
-           
 
-    
         getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -257,7 +249,6 @@ public class XRPlugin extends Plugin {
     //                 // fragmentTransaction.remove(fragment);
     //                 // fragmentTransaction.commit();
     //                 // fragment = null;
-                   
 
     //                 call.success();
     //             } else {
@@ -278,7 +269,7 @@ public class XRPlugin extends Plugin {
 
     @PluginMethod()
     public void stop(final PluginCall call) {
-        Log.d("Method","awdawgdawjhdgajwhdgawjh");
+        Log.d("XRPLUGIN", "stop");
         bridge.getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -288,17 +279,16 @@ public class XRPlugin extends Plugin {
 
                     ((ViewGroup)getBridge().getWebView().getParent()).removeView(containerView);
                     getBridge().getWebView().setBackgroundColor(Color.WHITE);
-                    FragmentManager fragmentManager = getActivity().getFragmentManager();
-                    FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
 
-                    call.success();
                     if(fragment != null){
+                        FragmentManager fragmentManager = getActivity().getFragmentManager();
+                        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
                         fragment.stopSession();
+                        fragmentTransaction.remove(fragment);
+                        fragmentTransaction.commit();
+                        fragment = null;
                     }
-
-                    fragmentTransaction.remove(fragment);
-
-
+                    call.success();
                 } else {
                     call.reject("camera already stopped");
                 }
@@ -1091,7 +1081,6 @@ public class XRPlugin extends Plugin {
         String clipTime = callbackContext.getString("clipTime");
         Log.d(TAG, "IS VideoDelay:" + videoDelay);
 
-
         if(screenRecord != null){
 
             Intent serviceIntent = new Intent(getContext(), MediaProjectionHelperService.class);
@@ -1113,24 +1102,22 @@ public class XRPlugin extends Plugin {
 
             File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), appName);
 
-            
-
             saveImageFromResourceId(R.drawable.watermark,mediaStorageDir.getPath(),"watermark.png");
 
             VideoIn  = mediaStorageDir.getPath() + filePath;
             AudioIn = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES) + "/" + audioId + ".aac");
             AudioOutPut = mediaStorageDir.getPath() + "/" + clipTitle + clipTime + ".mp4";
-            
+
             FFmpegSession session = FFmpegKit.execute("-i " + VideoIn + " -itsoffset " + videoDelay + " -stream_loop -1 -i " + AudioIn + " -map 0 -map 1:a -c:v copy -async 1 -shortest " + AudioOutPut + " -y");
-            
+
                 if (ReturnCode.isSuccess(session.getReturnCode())) {
-    
+
                     Log.d(TAG, String.format("SUCESS", session.getState(), session.getReturnCode(), session.getFailStackTrace()));
-    
+
                   } else if (ReturnCode.isCancel(session.getReturnCode())) {
-    
+
                     Log.d(TAG, String.format("CANCEL", session.getState(), session.getReturnCode(), session.getFailStackTrace()));
-    
+
                  } else {
                     // FAILURE
                     Log.d(TAG, String.format("Command failed with state %s and rc %s.%s", session.getState(), session.getReturnCode(), session.getFailStackTrace()));
