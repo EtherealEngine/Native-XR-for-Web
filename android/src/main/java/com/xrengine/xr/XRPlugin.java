@@ -40,6 +40,8 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.NativePlugin;
 
 import com.getcapacitor.PluginResult;
+import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
 import com.google.ar.core.Pose;
 import com.google.ar.core.RecordingConfig;
 import com.xrengine.xr.videocompressor.VideoCompress;
@@ -71,20 +73,17 @@ import static com.xrengine.xr.MediaProjectionHelper.data;
 
 import android.view.View;
 
-@NativePlugin(
-        permissions = {
-                Manifest.permission.CAMERA,
-                Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                // Manifest.permission.SYSTEM_ALERT_WINDOW
-        },
-        requestCodes = {
-                CameraPreview.REQUEST_CAMERA_PERMISSION,
-                SCREEN_RECORD_CODE,
-                REQUEST_FS_PERMISSION
-        }
-)
+ @CapacitorPlugin(
+         name = "XRPlugin",
+         permissions = {
+                @Permission(strings = { Manifest.permission.CAMERA }),
+                 @Permission(strings = { Manifest.permission.RECORD_AUDIO }),
+                @Permission(strings = { Manifest.permission.WRITE_EXTERNAL_STORAGE }),
+                @Permission(strings = { Manifest.permission.READ_EXTERNAL_STORAGE })
+               }
+   
+ )
+
 public class XRPlugin extends Plugin {
     static final int REQUEST_CAMERA_PERMISSION = 1234;
     static final int REQUEST_FS_PERMISSION = 1235;
@@ -101,13 +100,13 @@ public class XRPlugin extends Plugin {
 
     @PluginMethod()
     public void accessPermission (PluginCall call) {
-        saveCall(call);
+//         saveCall(call);
 
         if (hasRequiredPermissions()) {
             Log.d("XRPLUGIN", "Permissions for audio is Ok");
         } else {
             Log.d("XRPLUGIN", "Start camera with request");
-            pluginRequestAllPermissions();
+            requestPermissions(call);
         }
 
         // // if() {
@@ -119,7 +118,7 @@ public class XRPlugin extends Plugin {
         //     }, REQUEST_FS_PERMISSION);
         // // }
 
-        call.success();
+//        call.success();
     }
 
     @PluginMethod()
