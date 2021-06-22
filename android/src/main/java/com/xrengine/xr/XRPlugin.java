@@ -77,7 +77,7 @@ import android.view.View;
          name = "XRPlugin",
          permissions = {
                 @Permission(strings = { Manifest.permission.CAMERA }),
-                 @Permission(strings = { Manifest.permission.RECORD_AUDIO }),
+                @Permission(strings = { Manifest.permission.RECORD_AUDIO }),
                 @Permission(strings = { Manifest.permission.WRITE_EXTERNAL_STORAGE }),
                 @Permission(strings = { Manifest.permission.READ_EXTERNAL_STORAGE })
                }
