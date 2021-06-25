@@ -1,6 +1,6 @@
 {
   "name": "webxr-native",
-  "version": "0.2.20",
+  "version": "0.2.21",
   "description": "WebXR native polyfill for iOS and Android via Capacitor and Desktop via Electron.",
   "main": "dist/plugin.js",
   "module": "dist/esm/index.js",
@@ -26,9 +26,9 @@
   "license": "MIT",
   "devDependencies": {
     "@capacitor/core": "3.0.1",
+    "@capacitor/ios": "next",
     "@ionic/prettier-config": "1.0.1",
     "@rollup/plugin-node-resolve": "11.2.1",
-    "@capacitor/ios": "next",
     "prettier": "2.3.0",
     "rimraf": "3.0.2",
     "swiftlint": "1.0.1",
@@ -41,7 +41,7 @@
     "dist/",
     "ios/",
     "android/",
-    "WebxrNative.podspec"
+    "WebXRNative.podspec"
   ],
   "keywords": [
     "capacitor",
