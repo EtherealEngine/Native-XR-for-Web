@@ -14,6 +14,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.media.MediaMetadataRetriever;
+import android.media.MediaScannerConnection;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
@@ -986,7 +987,30 @@ public class XRPlugin extends Plugin {
     }
 
     @PluginMethod
-    public void shareMedia(PluginCall call) {
+    public void shareMedia(PluginCall callbackContext) {
+
+        String title = callbackContext.getString("title");
+        String path = callbackContext.getString("path");
+
+        MediaScannerConnection.scanFile(getActivity(), new String[] { path },
+                null, new MediaScannerConnection.OnScanCompletedListener() {
+                    public void onScanCompleted(String path, Uri uri) {
+                        Intent shareIntent = new Intent(
+                                android.content.Intent.ACTION_SEND);
+                        shareIntent.setType("video/*");
+                        shareIntent.putExtra(
+                                android.content.Intent.EXTRA_SUBJECT, title);
+                        shareIntent.putExtra(
+                                android.content.Intent.EXTRA_TITLE, title);
+                        shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
+                        shareIntent
+                                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+                        getContext().startActivity(Intent.createChooser(shareIntent,
+                                title));
+
+                    }
+        });
+
 
     }
 
