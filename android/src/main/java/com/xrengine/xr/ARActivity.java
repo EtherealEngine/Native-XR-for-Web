@@ -444,9 +444,9 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
 
         // Update BackgroundRenderer state to match the depth settings.
         try {
-            backgroundRenderer.setUseDepthVisualization(
-                    render, depthSettings.depthColorVisualizationEnabled());
-            backgroundRenderer.setUseOcclusion(render, depthSettings.useDepthForOcclusion());
+            // backgroundRenderer.setUseDepthVisualization(
+            //        render, depthSettings.depthColorVisualizationEnabled());
+            // backgroundRenderer.setUseOcclusion(render, depthSettings.useDepthForOcclusion());
         } catch (IOException e) {
             Log.e(TAG, "Failed to read a required asset file", e);
             return;
@@ -546,7 +546,7 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
         // -- Draw occluded virtual objects
 
         // Update lighting parameters in the shader
-        updateLightEstimation(frame.getLightEstimate(), viewMatrix);
+        // updateLightEstimation(frame.getLightEstimate(), viewMatrix);
 
         // Visualize anchors created by touch.
         render.clear(virtualSceneFramebuffer, 0f, 0f, 0f, 0f);
