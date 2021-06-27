@@ -20,6 +20,7 @@ import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
+import android.os.FileUtils;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.util.DisplayMetrics;
@@ -41,6 +42,8 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.NativePlugin;
 
 import com.getcapacitor.PluginResult;
+import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
 import com.google.ar.core.Pose;
 import com.google.ar.core.RecordingConfig;
 import com.xrengine.xr.videocompressor.VideoCompress;
@@ -50,6 +53,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -60,6 +64,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 
 import static android.app.Activity.RESULT_OK;
@@ -72,20 +77,17 @@ import static com.xrengine.xr.MediaProjectionHelper.data;
 
 import android.view.View;
 
-@NativePlugin(
-        permissions = {
-                Manifest.permission.CAMERA,
-                Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                // Manifest.permission.SYSTEM_ALERT_WINDOW
-        },
-        requestCodes = {
-                CameraPreview.REQUEST_CAMERA_PERMISSION,
-                SCREEN_RECORD_CODE,
-                REQUEST_FS_PERMISSION
-        }
-)
+ @CapacitorPlugin(
+         name = "XRPlugin",
+         permissions = {
+                @Permission(strings = { Manifest.permission.CAMERA }),
+                @Permission(strings = { Manifest.permission.RECORD_AUDIO }),
+                @Permission(strings = { Manifest.permission.WRITE_EXTERNAL_STORAGE }),
+                @Permission(strings = { Manifest.permission.READ_EXTERNAL_STORAGE })
+               }
+
+ )
+
 public class XRPlugin extends Plugin {
     static final int REQUEST_CAMERA_PERMISSION = 1234;
     static final int REQUEST_FS_PERMISSION = 1235;
@@ -99,16 +101,17 @@ public class XRPlugin extends Plugin {
     private String AudioResult;
     private File AudioIn;
     private String AudioOutPut;
+    private String nameId;
 
     @PluginMethod()
     public void accessPermission (PluginCall call) {
-        saveCall(call);
+//         saveCall(call);
 
         if (hasRequiredPermissions()) {
             Log.d("XRPLUGIN", "Permissions for audio is Ok");
         } else {
             Log.d("XRPLUGIN", "Start camera with request");
-            pluginRequestAllPermissions();
+            requestPermissions(call);
         }
 
         // // if() {
@@ -120,7 +123,7 @@ public class XRPlugin extends Plugin {
         //     }, REQUEST_FS_PERMISSION);
         // // }
 
-        call.success();
+//        call.success();
     }
 
     @PluginMethod()
@@ -132,12 +135,10 @@ public class XRPlugin extends Plugin {
         String audioId = callbackContext.getString("audioId");
 
         VideoIn = audioPath;
-        AudioOut = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES);
-        AudioResult =  Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES) + "/" + audioId + ".aac";
+        AudioOut = getActivity().getApplicationContext().getCacheDir();
+        AudioResult =  getActivity().getApplicationContext().getCacheDir() + "/" + audioId + ".aac";
         boolean f = new File(AudioResult).isFile();
         Log.d("XRPLUGIN", String.valueOf(f));
-
-
 
         if (f == false) {
             FFmpegSession session = FFmpegKit.execute("-i " + VideoIn + " -vn -acodec copy " + AudioOut + "/" + audioId + ".aac");
@@ -208,7 +209,7 @@ public class XRPlugin extends Plugin {
             Log.d("XRPLUGIN", "Permissions is Ok");
         } else {
             Log.d("XRPLUGIN", "Start camera with request");
-            pluginRequestAllPermissions();
+            requestPermissions(call);
 
             // pluginRequestPermissions(new String[]{
             //         Manifest.permission.CAMERA,
@@ -218,20 +219,20 @@ public class XRPlugin extends Plugin {
             // }, REQUEST_CAMERA_PERMISSION);
         }
 
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                final int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+        
+        getActivity().runOnUiThread(() -> {
+            final int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
 
-                View decorView = getActivity().getWindow().getDecorView();
-                int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
-                decorView.setSystemUiVisibility(flags);
-            }
+
+            View decorView = getActivity().getWindow().getDecorView();
+            int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+            decorView.setSystemUiVisibility(flags);
+
         });
     }
 
@@ -305,7 +306,7 @@ public class XRPlugin extends Plugin {
             }
         });
 
-        bridge.onDestroy();
+        // bridge.onDestroy();
 
         getActivity().getApplicationContext().getCacheDir().delete();
 
@@ -986,13 +987,23 @@ public class XRPlugin extends Plugin {
 
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     @PluginMethod
     public void shareMedia(PluginCall callbackContext) {
 
+      
         String title = callbackContext.getString("title");
         String path = callbackContext.getString("path");
 
-        MediaScannerConnection.scanFile(getActivity(), new String[] { path },
+        String videoEnd = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES).getAbsolutePath() + title + ".mp4";
+
+        try {
+            FileUtils.copy(new FileInputStream(path), new FileOutputStream(videoEnd));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        MediaScannerConnection.scanFile(getActivity(), new String[] { videoEnd },
                 null, new MediaScannerConnection.OnScanCompletedListener() {
                     public void onScanCompleted(String path, Uri uri) {
                         Intent shareIntent = new Intent(
@@ -1006,12 +1017,11 @@ public class XRPlugin extends Plugin {
                         shareIntent
                                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
                         getContext().startActivity(Intent.createChooser(shareIntent,
-                                title));
-
+                                title));    
                     }
         });
-
-
+     
+    
     }
 
     @PluginMethod
@@ -1025,13 +1035,36 @@ public class XRPlugin extends Plugin {
     }
 
     @PluginMethod
-    public void deleteVideo(PluginCall call) {
-
+    public void deleteVideo(PluginCall callbackContext) {
+        this.callbackContext = callbackContext;
+        String videoDir = callbackContext.getString("videoDir");
+        boolean checkVideoCache = new File(videoDir).isFile();
+        if (checkVideoCache == true) {
+        File VideoCache = new File(videoDir);
+        VideoCache.delete();
+        }
+     
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     @PluginMethod
-    public void saveVideoTo(PluginCall call) {
+    public void saveVideoTo(PluginCall callbackContext) throws IOException {
+        this.callbackContext = callbackContext;
+        String videoDir = callbackContext.getString("videoDir");
+        String nameId = callbackContext.getString("nameId");
+        String videoEnd = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES).getAbsolutePath() + nameId;
+        boolean isSave = new File(videoEnd).isFile();
 
+        if (isSave == false) {
+        FileUtils.copy(new FileInputStream(videoDir), new FileOutputStream(videoEnd));
+        Toast t = Toast.makeText(getContext(), "Video Save to Movies", Toast.LENGTH_SHORT);
+        t.show();
+        } else {
+        Toast t = Toast.makeText(getContext(), "Video already saved!", Toast.LENGTH_SHORT);
+        t.show();
+            Log.d("XRPLUGIN", "VIDEO ALREADY SAVED");
+        }
+        
     }
 
 //    // SCREEN RECORD =============================================
@@ -1124,14 +1157,18 @@ public class XRPlugin extends Plugin {
             }
             final String appName = (String) (ai != null ? pm.getApplicationLabel(ai) : "Unknown");
 
-            File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), appName);
+            File mediaStorageDir = new File(getActivity().getApplicationContext().getCacheDir(), appName);
 
-            saveImageFromResourceId(R.drawable.watermark,mediaStorageDir.getPath(),"watermark.png");
+            // saveImageFromResourceId(R.drawable.watermark,mediaStorageDir.getPath(),"watermark.png");
 
             VideoIn  = mediaStorageDir.getPath() + filePath;
-            AudioIn = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES) + "/" + audioId + ".aac");
+            AudioIn = new File(getActivity().getApplicationContext().getCacheDir() + "/" + audioId + ".aac");
             AudioOutPut = mediaStorageDir.getPath() + "/" + clipTitle + clipTime + ".mp4";
+            nameId = "/" + clipTitle + clipTime + ".mp4";
 
+            boolean checkForVideo = new File(VideoIn).isFile();
+         
+            if (checkForVideo == true) {
             FFmpegSession session = FFmpegKit.execute("-i " + VideoIn + " -itsoffset " + videoDelay + " -stream_loop -1 -i " + AudioIn + " -map 0 -map 1:a -c:v copy -async 1 -shortest " + AudioOutPut + " -y");
 
                 if (ReturnCode.isSuccess(session.getReturnCode())) {
@@ -1151,8 +1188,19 @@ public class XRPlugin extends Plugin {
             //WatermarkManager.trimVideo(mediaStorageDir.getPath() + filePath,0,0,0,2,true);
             //show recored video
             FFmpegKit.cancel();
+                }else {
+                    Log.d("XRPLUGIN", "Input 0");
+                }
 
-            callbackContext.success(new JSObject().put("result", "success").put("filePath", AudioOutPut));
+           boolean checkTest = new File(mediaStorageDir.getPath() + filePath).isFile();
+           if (checkTest == true) {
+           File VideoNoSound = new File(mediaStorageDir.getPath() + filePath);
+           VideoNoSound.delete();
+           }
+            
+     
+
+            callbackContext.success(new JSObject().put("result", "success").put("filePath", AudioOutPut).put("nameId", nameId));
 
             //WatermarkManager.addWatermark(mediaStorageDir.getPath() + filePath,mediaStorageDir.getPath()+"/watermark.png",true);
             //WatermarkManager.trimVideo(mediaStorageDir.getPath() + filePath,0,0,0,2,true);
@@ -1225,7 +1273,7 @@ public class XRPlugin extends Plugin {
 
     void doStartRecording(Intent data)
     {
-        PluginCall savedCall = getSavedCall();
+         PluginCall savedCall = getSavedCall();
 
         if (mediaProjection == null) {
             Log.e(TAG, "media projection is null");
@@ -1245,7 +1293,7 @@ public class XRPlugin extends Plugin {
             }
             final String appName = (String) (ai != null ? pm.getApplicationLabel(ai) : "Unknown");
 
-            File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), appName);
+            File mediaStorageDir = new File(getActivity().getApplicationContext().getCacheDir(), appName);
 
             if (!mediaStorageDir.exists()) {
 
@@ -1267,6 +1315,7 @@ public class XRPlugin extends Plugin {
             PluginResult result = new PluginResult();
             result.put("status", data.getStringExtra("ScreenRecord file at" + file.getAbsolutePath()));
             savedCall.successCallback(result);
+            
 
 //               getActivity().moveTaskToBack(true);
         }catch (Exception e){
