@@ -40,7 +40,7 @@
     "dist/",
     "ios/",
     "android/",
-    "WebXRNative.podspec"
+    "WebxrNative.podspec"
   ],
   "keywords": [
     "capacitor",
