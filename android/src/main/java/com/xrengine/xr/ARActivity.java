@@ -85,9 +85,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
-import static com.arthenica.mobileffmpeg.Config.RETURN_CODE_CANCEL;
-import static com.arthenica.mobileffmpeg.Config.RETURN_CODE_SUCCESS;
+//import static com.arthenica.mobileffmpeg.Config.RETURN_CODE_CANCEL;
+//import static com.arthenica.mobileffmpeg.Config.RETURN_CODE_SUCCESS;
 
 /**
  * This is a simple example that shows how to create an augmented reality (AR) application using the
@@ -141,7 +142,7 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
     // values for AR experiences where users are expected to place objects on surfaces close to the
     // camera. Use larger values for experiences where the user will likely be standing and trying to
     // place an object on the ground or floor in front of them.
-    private static final float APPROXIMATE_DISTANCE_METERS = 2.0f;
+    private static final float APPROXIMATE_DISTANCE_METERS = 30.0f;
 
     // Point Cloud
     private VertexBuffer pointCloudVertexBuffer;
@@ -158,6 +159,7 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
     // Virtual object (ARCore pawn)
     private Mesh virtualObjectMesh;
     private Shader virtualObjectShader;
+    private final float[] hitTestRequestedCoordinates = new float[2];
     private final ArrayList<Anchor> anchors = new ArrayList<>();
 
     // Temporary matrix allocated here to reduce number of allocations for each frame.
@@ -404,7 +406,7 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
     Camera camera = null;
     Frame frame = null;
     Pose cameraPose;
-    Pose anchorPose;
+    Pose anchorPose = null;
 
     @Override
     public void onDrawFrame(SampleRender render) {
@@ -442,9 +444,9 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
 
         // Update BackgroundRenderer state to match the depth settings.
         try {
-            backgroundRenderer.setUseDepthVisualization(
-                    render, depthSettings.depthColorVisualizationEnabled());
-            backgroundRenderer.setUseOcclusion(render, depthSettings.useDepthForOcclusion());
+            // backgroundRenderer.setUseDepthVisualization(
+            //        render, depthSettings.depthColorVisualizationEnabled());
+            // backgroundRenderer.setUseOcclusion(render, depthSettings.useDepthForOcclusion());
         } catch (IOException e) {
             Log.e(TAG, "Failed to read a required asset file", e);
             return;
@@ -464,6 +466,17 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
             }
         }
 
+        // handle hit test, to add anchor
+        if (hitTestRequestedCoordinates[0] >= 0) {
+            float x = hitTestRequestedCoordinates[0];
+            float y = hitTestRequestedCoordinates[1];
+
+            this.hitTest(x, y);
+
+            // reset coordinates
+            hitTestRequestedCoordinates[0] = -1;
+            hitTestRequestedCoordinates[1] = -1;
+        }
 
         // Show a message based on whether tracking has failed, if planes are detected, and if the user
         // has placed any objects.
@@ -512,27 +525,28 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
 
         // Visualize tracked points.
         // Use try-with-resources to automatically release the point cloud.
-        try (PointCloud pointCloud = frame.acquirePointCloud()) {
-            if (pointCloud.getTimestamp() > lastPointCloudTimestamp) {
-                pointCloudVertexBuffer.set(pointCloud.getPoints());
-                lastPointCloudTimestamp = pointCloud.getTimestamp();
-            }
-            Matrix.multiplyMM(modelViewProjectionMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
-            pointCloudShader.setMat4("u_ModelViewProjection", modelViewProjectionMatrix);
-            render.draw(pointCloudMesh, pointCloudShader);
-        }
+        // TODO make them optional
+//        try (PointCloud pointCloud = frame.acquirePointCloud()) {
+//            if (pointCloud.getTimestamp() > lastPointCloudTimestamp) {
+//                pointCloudVertexBuffer.set(pointCloud.getPoints());
+//                lastPointCloudTimestamp = pointCloud.getTimestamp();
+//            }
+//            Matrix.multiplyMM(modelViewProjectionMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
+//            pointCloudShader.setMat4("u_ModelViewProjection", modelViewProjectionMatrix);
+//            render.draw(pointCloudMesh, pointCloudShader);
+//        }
 
         // Visualize planes.
-        planeRenderer.drawPlanes(
-                render,
-                session.getAllTrackables(Plane.class),
-                camera.getDisplayOrientedPose(),
-                projectionMatrix);
+//         planeRenderer.drawPlanes(
+//                 render,
+//                 session.getAllTrackables(Plane.class),
+//                 camera.getDisplayOrientedPose(),
+//                 projectionMatrix);
 
         // -- Draw occluded virtual objects
 
         // Update lighting parameters in the shader
-        updateLightEstimation(frame.getLightEstimate(), viewMatrix);
+        // updateLightEstimation(frame.getLightEstimate(), viewMatrix);
 
         // Visualize anchors created by touch.
         render.clear(virtualSceneFramebuffer, 0f, 0f, 0f, 0f);
@@ -568,7 +582,7 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
                 return;
             }
 
-            Log.d(TAG, "Sending pose data");
+            //Log.d(TAG, "Sending pose data");
             float[] cameraPoseData = new float[7];
             cameraPoseData[0] = cameraPose.tx();
             cameraPoseData[1] = cameraPose.ty();
@@ -578,9 +592,10 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
             cameraPoseData[5] = cameraPose.qy();
             cameraPoseData[6] = cameraPose.qz();
 
-            float[] anchorPoseData = new float[7];
+            float[] anchorPoseData = null;
 
             if(anchorPose != null) {
+                anchorPoseData = new float[7];
                 anchorPoseData[0] = anchorPose.tx();
                 anchorPoseData[1] = anchorPose.ty();
                 anchorPoseData[2] = anchorPose.tz();
@@ -593,56 +608,50 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
         }
     }
 
-    private XRPlugin activity = null;
+    private void hitTest(float x, float y) {
+        Log.e(TAG, String.format(Locale.ENGLISH, "ARActivity.hitTest: check coords %8.2f, %8.2f", x, y));
 
-    public void clearAnchors(){
-        anchors.get(0).detach();
-        anchors.remove(0);
-    }
-
-    // Handle only one tap per frame, as taps are usually low frequency compared to frame rate.
-    public void handleTap(XRPlugin activity) {
-        this.activity = activity;
         if(camera == null){
-            Log.e(TAG, "Camera object is null, couldn't handle tap");
+            Log.e(TAG, "ARActivity.hitTest: Camera object is null!?, couldn't handle tap");
             return;
         }
 
-        CameraIntrinsics ci = camera.getImageIntrinsics();
-        float[] focalLength = ci.getFocalLength();
-        float[] principalPoint = ci.getPrincipalPoint();
-        int[] imageDimensions = ci.getImageDimensions();
-
-
-        activity.receiveCameraIntrinsics(focalLength, principalPoint, imageDimensions);
-
+        int hitsCount = 0;
+        int anchorsFound = 0;
         if (camera.getTrackingState() == TrackingState.TRACKING) {
             List<HitResult> hitResultList;
 //            if (instantPlacementSettings.isInstantPlacementEnabled()) {
-                hitResultList = frame.hitTestInstantPlacement(0, 0, APPROXIMATE_DISTANCE_METERS);
+            hitResultList = frame.hitTestInstantPlacement(x, y, APPROXIMATE_DISTANCE_METERS);
 //            } else {
 //                hitResultList = frame.hitTest(tap);
 //            }
+            hitsCount = hitResultList.size();
+
             for (HitResult hit : hitResultList) {
                 // If any plane, Oriented Point, or Instant Placement Point was hit, create an anchor.
                 Trackable trackable = hit.getTrackable();
-                if(trackable.getTrackingState() == TrackingState.TRACKING &&
+
+                boolean check1 = trackable instanceof Plane
+                        && ((Plane) trackable).isPoseInPolygon(hit.getHitPose())
+                        && (PlaneRenderer.calculateDistanceToPlane(hit.getHitPose(), camera.getPose()) > 0);
+                boolean check2 = trackable instanceof Point
+                        && ((Point) trackable).getOrientationMode()
+                        == OrientationMode.ESTIMATED_SURFACE_NORMAL;
+                boolean check3 = trackable instanceof InstantPlacementPoint;
+
+                Log.e(TAG, String.format(Locale.ENGLISH, "ARActivity.handleTap: hit: %b %b %b", check1, check2, check3));
+
+                if (trackable.getTrackingState() == TrackingState.TRACKING &&
                         trackable.getTrackingState() != TrackingState.STOPPED &&
                         trackable.getTrackingState() != TrackingState.PAUSED) {
-                // If a plane was hit, check that it was hit inside the plane polygon.
-                if ((trackable instanceof Plane
-                        && ((Plane) trackable).isPoseInPolygon(hit.getHitPose())
-                        && (PlaneRenderer.calculateDistanceToPlane(hit.getHitPose(), camera.getPose()) > 0))
-                        || (trackable instanceof Point
-                        && ((Point) trackable).getOrientationMode()
-                        == OrientationMode.ESTIMATED_SURFACE_NORMAL)
-                        || (trackable instanceof InstantPlacementPoint)) {
-                    // Cap the number of objects created. This avoids overloading both the
-                    // rendering system and ARCore.
-                    if (anchors.size() >= 1) {
-
-                        return;
-                    }
+                    // If a plane was hit, check that it was hit inside the plane polygon.
+                    if (check1 || check2 || check3) {
+                        // Cap the number of objects created. This avoids overloading both the
+                        // rendering system and ARCore.
+                        if (anchors.size() >= 1) {
+                            this.clearAnchors();
+//                            return;
+                        }
 
 
                         // Adding an Anchor tells ARCore that it should track this position in
@@ -650,6 +659,9 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
                         // in the correct position relative both to the world and to the plane.
 
                         anchors.add(hit.createAnchor());
+
+                        anchorsFound++;
+                        break;
                     }
                     // For devices that support the Depth API, shows a dialog to suggest enabling
                     // depth-based occlusion. This dialog needs to be spawned on the UI thread.
@@ -657,10 +669,40 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
 
                     // Hits are sorted by depth. Consider only closest hit on a plane, Oriented Point, or
                     // Instant Placement Point.
-                    break;
+                    // break;
                 }
             }
         }
+
+        Log.e(TAG, String.format(Locale.ENGLISH, "ARActivity.handleTap: hits: %d,  anchors: %d", hitsCount, anchorsFound));
+    }
+
+    private XRPlugin activity = null;
+
+    public void clearAnchors(){
+        anchors.get(0).detach();
+        anchors.remove(0);
+    }
+
+    public void stopSession() {
+        Log.d("onDestroy","DESTROY SESSION");
+        if (session != null) {
+            // Explicitly close ARCore Session to release native resources.
+            // Review the API reference for important considerations before calling close() in apps with
+            // more complicated lifecycle requirements:
+            // https://developers.google.com/ar/reference/java/arcore/reference/com/google/ar/core/Session#close()
+            session.close();
+            session = null;
+        }
+    }
+
+    // Handle only one tap per frame, as taps are usually low frequency compared to frame rate.
+    public void handleTap(XRPlugin activity, float x, float y) {
+        this.activity = activity;
+
+        // this coordinates will be handled on next update in onDrawFrame
+        hitTestRequestedCoordinates[0] = x;
+        hitTestRequestedCoordinates[1] = y;
     }
 
 
@@ -871,6 +913,7 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
         else if (id == R.id.btn_close_view)
         {
             popupWindow.dismiss();
+            session.close();
             //need to fix
             // pauseARSession =false;
             // try
@@ -886,24 +929,24 @@ public class ARActivity extends Fragment implements SampleRender.Renderer, View.
     @Override
     public void watermarkStatus(int code)
     {
-        if(code == RETURN_CODE_SUCCESS)
-        {
-            // watermark addition succeeded
-            Intent sendIntent = new Intent(Intent.ACTION_SEND);
-            sendIntent.setType("video/mp4");
-            sendIntent.putExtra(Intent.EXTRA_SUBJECT, "Video");
-            sendIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse(watermarkedFilePath));
-            sendIntent.putExtra(Intent.EXTRA_TEXT, "Enjoy the Video");
-            startActivity(Intent.createChooser(sendIntent, "Email:"));
-        }
-        else if(code == RETURN_CODE_CANCEL)
-        {
-            // watermark addition cancelled
-        }
-        else
-        {
-            // watermark addtion failed with code
-        }
+//        if(code == RETURN_CODE_SUCCESS)
+//        {
+//            // watermark addition succeeded
+//            Intent sendIntent = new Intent(Intent.ACTION_SEND);
+//            sendIntent.setType("video/mp4");
+//            sendIntent.putExtra(Intent.EXTRA_SUBJECT, "Video");
+//            sendIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse(watermarkedFilePath));
+//            sendIntent.putExtra(Intent.EXTRA_TEXT, "Enjoy the Video");
+//            startActivity(Intent.createChooser(sendIntent, "Email:"));
+//        }
+//        else if(code == RETURN_CODE_CANCEL)
+//        {
+//            // watermark addition cancelled
+//        }
+//        else
+//        {
+//            // watermark addtion failed with code
+//        }
     }
 
     @Override

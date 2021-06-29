@@ -14,11 +14,13 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.media.MediaMetadataRetriever;
+import android.media.MediaScannerConnection;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
+import android.os.FileUtils;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.util.DisplayMetrics;
@@ -30,6 +32,9 @@ import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
+import com.arthenica.ffmpegkit.FFmpegKit;
+import com.arthenica.ffmpegkit.FFmpegSession;
+import com.arthenica.ffmpegkit.ReturnCode;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -37,6 +42,8 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.NativePlugin;
 
 import com.getcapacitor.PluginResult;
+import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
 import com.google.ar.core.Pose;
 import com.google.ar.core.RecordingConfig;
 import com.xrengine.xr.videocompressor.VideoCompress;
@@ -46,6 +53,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -56,46 +64,112 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 
 import static android.app.Activity.RESULT_OK;
 import static android.content.Context.MEDIA_PROJECTION_SERVICE;
 import static com.xrengine.xr.XRPlugin.SCREEN_RECORD_CODE;
+import static com.xrengine.xr.XRPlugin.REQUEST_FS_PERMISSION;
 
 import static com.xrengine.xr.MediaProjectionHelper.mediaProjection;
 import static com.xrengine.xr.MediaProjectionHelper.data;
 
 import android.view.View;
 
-@NativePlugin(
-        permissions = {
-                Manifest.permission.CAMERA,
-                Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.SYSTEM_ALERT_WINDOW
-        },
-        requestCodes = {
-                CameraPreview.REQUEST_CAMERA_PERMISSION,
-                SCREEN_RECORD_CODE
-        }
-)
+ @CapacitorPlugin(
+         name = "XRPlugin",
+         permissions = {
+                @Permission(strings = { Manifest.permission.CAMERA }),
+                @Permission(strings = { Manifest.permission.RECORD_AUDIO }),
+                @Permission(strings = { Manifest.permission.WRITE_EXTERNAL_STORAGE }),
+                @Permission(strings = { Manifest.permission.READ_EXTERNAL_STORAGE })
+               }
+
+ )
+
 public class XRPlugin extends Plugin {
     static final int REQUEST_CAMERA_PERMISSION = 1234;
+    static final int REQUEST_FS_PERMISSION = 1235;
     private static String VIDEO_FILE_PATH = "";
     private static String VIDEO_FILE_EXTENSION = ".mp4";
 
     private ARActivity fragment;
     private int containerViewId = 20;
+    private String VideoIn;
+    private File AudioOut;
+    private String AudioResult;
+    private File AudioIn;
+    private String AudioOutPut;
+    private String nameId;
+
+    @PluginMethod()
+    public void accessPermission (PluginCall call) {
+//         saveCall(call);
+
+        if (hasRequiredPermissions()) {
+            Log.d("XRPLUGIN", "Permissions for audio is Ok");
+        } else {
+            Log.d("XRPLUGIN", "Start camera with request");
+            requestPermissions(call);
+        }
+
+        // // if() {
+        // //     Log.d("XRPLUGIN", "Permission is OK");
+        // // }else {
+        //     pluginRequestPermissions(new String[]{
+        //             Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        //             Manifest.permission.READ_EXTERNAL_STORAGE
+        //     }, REQUEST_FS_PERMISSION);
+        // // }
+
+//        call.success();
+    }
+
+    @PluginMethod()
+    public void uploadFiles(PluginCall callbackContext) {
+        Log.d("XRPLUGIN", "Upload Files");
+
+        this.callbackContext = callbackContext;
+        String audioPath = callbackContext.getString("audioPath");
+        String audioId = callbackContext.getString("audioId");
+
+        VideoIn = audioPath;
+        AudioOut = getActivity().getApplicationContext().getCacheDir();
+        AudioResult =  getActivity().getApplicationContext().getCacheDir() + "/" + audioId + ".aac";
+        boolean f = new File(AudioResult).isFile();
+        Log.d("XRPLUGIN", String.valueOf(f));
+
+        if (f == false) {
+            FFmpegSession session = FFmpegKit.execute("-i " + VideoIn + " -vn -acodec copy " + AudioOut + "/" + audioId + ".aac");
+
+            if (ReturnCode.isSuccess(session.getReturnCode())) {
+
+                Log.d(TAG, String.format("SUCESS", session.getState(), session.getReturnCode(), session.getFailStackTrace()));
+
+            } else if (ReturnCode.isCancel(session.getReturnCode())) {
+
+                Log.d(TAG, String.format("CANCEL", session.getState(), session.getReturnCode(), session.getFailStackTrace()));
+
+            } else {
+                // FAILURE
+                Log.d(TAG, String.format("Command failed with state %s and rc %s.%s", session.getState(), session.getReturnCode(), session.getFailStackTrace()));
+            }
+            FFmpegKit.cancel();
+        }
+        callbackContext.success();
+    }
 
     @PluginMethod()
     public void initialize(PluginCall call) {
         Log.d("XRPLUGIN", "Initializing");
 
         //Start the service to get screen recording permission
+       
         Intent serviceIntent = new Intent(getContext(), MediaProjectionHelperService.class);
         serviceIntent.putExtra("inputExtra", "asdf");
         ContextCompat.startForegroundService(getContext(), serviceIntent);
+        
 
         JSObject ret = new JSObject();
         ret.put("status", "native");
@@ -105,10 +179,10 @@ public class XRPlugin extends Plugin {
     @PluginMethod()
     public void handleTap(PluginCall call){
         saveCall(call);
-        Toast t = Toast.makeText(getContext(), "Tapped", Toast.LENGTH_SHORT);
-        t.show();
+        final float x = call.getFloat("x", 0f);
+        final float y = call.getFloat("y", 0f);
 
-        fragment.handleTap(this);
+        fragment.handleTap(this, x, y);
     }
 
     @PluginMethod()
@@ -132,51 +206,90 @@ public class XRPlugin extends Plugin {
 
         if (hasRequiredPermissions()) {
             startCamera(call);
+            Log.d("XRPLUGIN", "Permissions is Ok");
         } else {
-            Log.d("XRPLUGIN", "Couldn't start camera");
+            Log.d("XRPLUGIN", "Start camera with request");
+            requestPermissions(call);
 
-            pluginRequestPermissions(new String[]{
-                    Manifest.permission.CAMERA,
-                    Manifest.permission.RECORD_AUDIO,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                    Manifest.permission.READ_EXTERNAL_STORAGE
-            }, REQUEST_CAMERA_PERMISSION);
+            // pluginRequestPermissions(new String[]{
+            //         Manifest.permission.CAMERA,
+            //         Manifest.permission.RECORD_AUDIO,
+            //         // Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            //         // Manifest.permission.READ_EXTERNAL_STORAGE
+            // }, REQUEST_CAMERA_PERMISSION);
         }
 
+        
+        getActivity().runOnUiThread(() -> {
+            final int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
 
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                final int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
 
-                View decorView = getActivity().getWindow().getDecorView();
-                int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
-                decorView.setSystemUiVisibility(flags);
-            }
+            View decorView = getActivity().getWindow().getDecorView();
+            int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+            decorView.setSystemUiVisibility(flags);
+
         });
     }
 
+    // @PluginMethod()
+    // public void stop(final PluginCall call) {
+    //     bridge.getActivity().runOnUiThread(new Runnable() {
+    //         @Override
+    //         public void run() {
+    //             FrameLayout containerView = getBridge().getActivity().findViewById(containerViewId);
+
+    //             if (containerView != null) {
+    //                 ((ViewGroup)getBridge().getWebView().getParent()).removeView(containerView);
+    //                 getBridge().getWebView().setBackgroundColor(Color.WHITE);
+    //                 // FragmentManager fragmentManager = getActivity().getFragmentManager();
+    //                 // FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+    //                 // fragmentTransaction.remove(fragment);
+    //                 // fragmentTransaction.commit();
+    //                 // fragment = null;
+
+    //                 call.success();
+    //             } else {
+    //                 call.reject("camera already stopped");
+    //             }
+    //         }
+    //     });
+
+    //     getActivity().runOnUiThread(new Runnable() {
+    //         @Override
+    //         public void run() {
+    //             View decorView = getActivity().getWindow().getDecorView();
+    //             int uiOptions = View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+    //             decorView.setSystemUiVisibility(uiOptions);
+    //         }
+    //     });
+    // }
+
     @PluginMethod()
     public void stop(final PluginCall call) {
+        Log.d("XRPLUGIN", "stop");
         bridge.getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 FrameLayout containerView = getBridge().getActivity().findViewById(containerViewId);
 
                 if (containerView != null) {
+
                     ((ViewGroup)getBridge().getWebView().getParent()).removeView(containerView);
                     getBridge().getWebView().setBackgroundColor(Color.WHITE);
-                    FragmentManager fragmentManager = getActivity().getFragmentManager();
-                    FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-                    // fragmentTransaction.remove(fragment);
-                    // fragmentTransaction.commit();
-                    // fragment = null;
 
+                    if(fragment != null){
+                        FragmentManager fragmentManager = getActivity().getFragmentManager();
+                        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+                        fragment.stopSession();
+                        fragmentTransaction.remove(fragment);
+                        fragmentTransaction.commit();
+                        fragment = null;
+                    }
                     call.success();
                 } else {
                     call.reject("camera already stopped");
@@ -192,6 +305,14 @@ public class XRPlugin extends Plugin {
                 decorView.setSystemUiVisibility(uiOptions);
             }
         });
+
+        // bridge.onDestroy();
+
+        getActivity().getApplicationContext().getCacheDir().delete();
+
+        System.gc();
+        System.runFinalization();
+        super.handleOnDestroy();
     }
 
     @Override
@@ -207,7 +328,23 @@ public class XRPlugin extends Plugin {
 
             PluginCall savedCall = getSavedCall();
             if (permissionsGranted) {
-                startCamera(savedCall);
+                 startCamera(savedCall);
+            } else {
+                savedCall.reject("permission failed");
+            }
+        }
+
+        if (requestCode == REQUEST_FS_PERMISSION) {
+            boolean permissionsGranted = true;
+            for (int grantResult: grantResults) {
+                if (grantResult != 0) {
+                    permissionsGranted = false;
+                }
+            }
+
+            PluginCall savedCall = getSavedCall();
+            if (permissionsGranted) {
+                Log.d("XRPLUGIN", "FS REQUEST");
             } else {
                 savedCall.reject("permission failed");
             }
@@ -850,9 +987,41 @@ public class XRPlugin extends Plugin {
 
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     @PluginMethod
-    public void shareMedia(PluginCall call) {
+    public void shareMedia(PluginCall callbackContext) {
 
+      
+        String title = callbackContext.getString("title");
+        String path = callbackContext.getString("path");
+
+        String videoEnd = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES).getAbsolutePath() + title + ".mp4";
+
+        try {
+            FileUtils.copy(new FileInputStream(path), new FileOutputStream(videoEnd));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        MediaScannerConnection.scanFile(getActivity(), new String[] { videoEnd },
+                null, new MediaScannerConnection.OnScanCompletedListener() {
+                    public void onScanCompleted(String path, Uri uri) {
+                        Intent shareIntent = new Intent(
+                                android.content.Intent.ACTION_SEND);
+                        shareIntent.setType("video/*");
+                        shareIntent.putExtra(
+                                android.content.Intent.EXTRA_SUBJECT, title);
+                        shareIntent.putExtra(
+                                android.content.Intent.EXTRA_TITLE, title);
+                        shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
+                        shareIntent
+                                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+                        getContext().startActivity(Intent.createChooser(shareIntent,
+                                title));    
+                    }
+        });
+     
+    
     }
 
     @PluginMethod
@@ -866,13 +1035,36 @@ public class XRPlugin extends Plugin {
     }
 
     @PluginMethod
-    public void deleteVideo(PluginCall call) {
-
+    public void deleteVideo(PluginCall callbackContext) {
+        this.callbackContext = callbackContext;
+        String videoDir = callbackContext.getString("videoDir");
+        boolean checkVideoCache = new File(videoDir).isFile();
+        if (checkVideoCache == true) {
+        File VideoCache = new File(videoDir);
+        VideoCache.delete();
+        }
+     
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     @PluginMethod
-    public void saveVideoTo(PluginCall call) {
+    public void saveVideoTo(PluginCall callbackContext) throws IOException {
+        this.callbackContext = callbackContext;
+        String videoDir = callbackContext.getString("videoDir");
+        String nameId = callbackContext.getString("nameId");
+        String videoEnd = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES).getAbsolutePath() + nameId;
+        boolean isSave = new File(videoEnd).isFile();
 
+        if (isSave == false) {
+        FileUtils.copy(new FileInputStream(videoDir), new FileOutputStream(videoEnd));
+        Toast t = Toast.makeText(getContext(), "Video Save to Movies", Toast.LENGTH_SHORT);
+        t.show();
+        } else {
+        Toast t = Toast.makeText(getContext(), "Video already saved!", Toast.LENGTH_SHORT);
+        t.show();
+            Log.d("XRPLUGIN", "VIDEO ALREADY SAVED");
+        }
+        
     }
 
 //    // SCREEN RECORD =============================================
@@ -939,6 +1131,13 @@ public class XRPlugin extends Plugin {
     @PluginMethod
     public void stopRecording(PluginCall callbackContext) {
 
+        this.callbackContext = callbackContext;
+        String audioId = callbackContext.getString("audioId");
+        double videoDelay = callbackContext.getDouble("videoDelay");
+        String clipTitle = callbackContext.getString("clipTitle");
+        String clipTime = callbackContext.getString("clipTime");
+        Log.d(TAG, "IS VideoDelay:" + videoDelay);
+
         if(screenRecord != null){
 
             Intent serviceIntent = new Intent(getContext(), MediaProjectionHelperService.class);
@@ -958,16 +1157,55 @@ public class XRPlugin extends Plugin {
             }
             final String appName = (String) (ai != null ? pm.getApplicationLabel(ai) : "Unknown");
 
-            File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), appName);
+            File mediaStorageDir = new File(getActivity().getApplicationContext().getCacheDir(), appName);
 
-            callbackContext.success(new JSObject().put("result", "success").put("filePath", mediaStorageDir.getPath() + filePath));
+            // saveImageFromResourceId(R.drawable.watermark,mediaStorageDir.getPath(),"watermark.png");
 
-            saveImageFromResourceId(R.drawable.watermark,mediaStorageDir.getPath(),"watermark.png");
+            VideoIn  = mediaStorageDir.getPath() + filePath;
+            AudioIn = new File(getActivity().getApplicationContext().getCacheDir() + "/" + audioId + ".aac");
+            AudioOutPut = mediaStorageDir.getPath() + "/" + clipTitle + clipTime + ".mp4";
+            nameId = "/" + clipTitle + clipTime + ".mp4";
+
+            boolean checkForVideo = new File(VideoIn).isFile();
+         
+            if (checkForVideo == true) {
+            FFmpegSession session = FFmpegKit.execute("-i " + VideoIn + " -itsoffset " + videoDelay + " -stream_loop -1 -i " + AudioIn + " -map 0 -map 1:a -c:v copy -async 1 -shortest " + AudioOutPut + " -y");
+
+                if (ReturnCode.isSuccess(session.getReturnCode())) {
+
+                    Log.d(TAG, String.format("SUCESS", session.getState(), session.getReturnCode(), session.getFailStackTrace()));
+
+                  } else if (ReturnCode.isCancel(session.getReturnCode())) {
+
+                    Log.d(TAG, String.format("CANCEL", session.getState(), session.getReturnCode(), session.getFailStackTrace()));
+
+                 } else {
+                    // FAILURE
+                    Log.d(TAG, String.format("Command failed with state %s and rc %s.%s", session.getState(), session.getReturnCode(), session.getFailStackTrace()));
+                 }
 
             //WatermarkManager.addWatermark(mediaStorageDir.getPath() + filePath,mediaStorageDir.getPath()+"/watermark.png",true);
             //WatermarkManager.trimVideo(mediaStorageDir.getPath() + filePath,0,0,0,2,true);
             //show recored video
-            fragment.showVideo(mediaStorageDir.getPath() + filePath,mediaStorageDir.getPath()+"/watermark.png");
+            FFmpegKit.cancel();
+                }else {
+                    Log.d("XRPLUGIN", "Input 0");
+                }
+
+           boolean checkTest = new File(mediaStorageDir.getPath() + filePath).isFile();
+           if (checkTest == true) {
+           File VideoNoSound = new File(mediaStorageDir.getPath() + filePath);
+           VideoNoSound.delete();
+           }
+            
+     
+
+            callbackContext.success(new JSObject().put("result", "success").put("filePath", AudioOutPut).put("nameId", nameId));
+
+            //WatermarkManager.addWatermark(mediaStorageDir.getPath() + filePath,mediaStorageDir.getPath()+"/watermark.png",true);
+            //WatermarkManager.trimVideo(mediaStorageDir.getPath() + filePath,0,0,0,2,true);
+            //show recored video
+            // fragment.showVideo(mediaStorageDir.getPath() + filePath,mediaStorageDir.getPath()+"/watermark.png");
         }else {
             callbackContext.error("no ScreenRecord in process XX");
         }
@@ -1035,7 +1273,7 @@ public class XRPlugin extends Plugin {
 
     void doStartRecording(Intent data)
     {
-        PluginCall savedCall = getSavedCall();
+         PluginCall savedCall = getSavedCall();
 
         if (mediaProjection == null) {
             Log.e(TAG, "media projection is null");
@@ -1055,7 +1293,7 @@ public class XRPlugin extends Plugin {
             }
             final String appName = (String) (ai != null ? pm.getApplicationLabel(ai) : "Unknown");
 
-            File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), appName);
+            File mediaStorageDir = new File(getActivity().getApplicationContext().getCacheDir(), appName);
 
             if (!mediaStorageDir.exists()) {
 
@@ -1077,6 +1315,7 @@ public class XRPlugin extends Plugin {
             PluginResult result = new PluginResult();
             result.put("status", data.getStringExtra("ScreenRecord file at" + file.getAbsolutePath()));
             savedCall.successCallback(result);
+            
 
 //               getActivity().moveTaskToBack(true);
         }catch (Exception e){
