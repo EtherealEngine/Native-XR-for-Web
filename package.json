@@ -1,6 +1,6 @@
 {
   "name": "webxr-native",
-  "version": "0.2.23",
+  "version": "0.2.24",
   "description": "WebXR native polyfill for iOS and Android via Capacitor and Desktop via Electron.",
   "main": "dist/plugin.js",
   "module": "dist/esm/index.js",
