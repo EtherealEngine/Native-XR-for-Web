@@ -15,7 +15,7 @@ public func simdToArray4x4(_ t:simd_float4x4) -> Array<Float> {
  * Please read the Capacitor iOS Plugin Development Guide
  * here: https://capacitorjs.com/docs/plugins/ios
  */
-@available(iOS 13.0, *)
+@available(iOS 14.0, *)
 @objc(XRPlugin)
 public class XRPlugin: CAPPlugin {
     private let implementation = WebXRNative()
@@ -101,9 +101,22 @@ public class XRPlugin: CAPPlugin {
     }
     
     @objc func handleTap(_ call: CAPPluginCall) {
-        let x = CGFloat(call.getFloat("x")!)
-        let y = CGFloat(call.getFloat("y")!)
-        self.implementation.handleTap(point: CGPoint(x:x,y:y))
+        DispatchQueue.main.async {
+            let pixelDensity = UIScreen.main.scale
+            guard let bounds = self.webView?.bounds
+            else { return }
+            let x = CGFloat(call.getFloat("x")!) / (bounds.width * pixelDensity)
+            let y = CGFloat(call.getFloat("y")!) / (bounds.height * pixelDensity)
+            self.implementation.handleTap(point: CGPoint(x:x,y:y))
+        }
+        call.resolve(["status": "ok"])
+    }
+    
+    @objc func accessPermission(_ call : CAPPluginCall) {
+        call.resolve(["status": "ok"])
+    }
+    
+    @objc func uploadFiles(_ call : CAPPluginCall) {
         call.resolve(["status": "ok"])
     }
 }
