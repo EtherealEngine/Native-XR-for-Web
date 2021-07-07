@@ -172,6 +172,20 @@ export class XRPluginWeb extends WebPlugin implements XRPluginPlugin {
     });
   }
 
+  async accessPermission(options: {}): Promise<{ status: string }> {
+  	console.log("shareMedia called to plugin on web");
+  	return new Promise((resolve, reject) => {
+  		resolve({ status: "success" })
+  	});
+  }
+
+  async uploadFiles(options: {}): Promise<{ status: string }> {
+  	console.log("shareMedia called to plugin on web");
+  	return new Promise((resolve, reject) => {
+  		resolve({ status: "success" })
+  	});
+  }
+
 
   async showVideo(options: {}): Promise<{ status: string }> {
     console.log("showVideo called to plugin on web");

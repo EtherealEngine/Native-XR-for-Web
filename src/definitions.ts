@@ -198,7 +198,7 @@ export interface XRPluginPlugin {
 
     start(options: CameraOptions): Promise<{}>;
     stop(): Promise<{}>;
-    
+
     handleTap(): void;
 
     clearAnchors(): void;
@@ -215,12 +215,16 @@ export interface XRPluginPlugin {
 
     shareMedia(options: {}): Promise<{ status: string; }>;
 
+	accessPermission(options: {}): Promise<{ status: string; }>;
+
+	uploadFiles(options: {}): Promise<{ status: string; }>;
+
     showVideo(options: {}): Promise<{ status: string; }>;
 
     hideVideo(options: {}): Promise<{ status: string; }>;
 
     playVideo(options: {}): Promise<{ status: string; }>;
-    
+
     pauseVideo(options: {}): Promise<{ status: string; }>;
 
     scrubTo(positionInTrack: number): Promise<{ status: string; }>;
