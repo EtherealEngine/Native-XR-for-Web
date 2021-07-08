@@ -8,4 +8,6 @@ CAP_PLUGIN(XRPlugin, "XRPlugin",
            CAP_PLUGIN_METHOD(start, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(stop, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(handleTap, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(accessPermission, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(uploadFiles, CAPPluginReturnPromise);
 )

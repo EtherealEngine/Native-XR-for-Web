@@ -36,6 +36,7 @@ extension CAPBridgeViewController {
 
 extension MTKView : RenderDestinationProvider {}
 
+@available(iOS 13.0, *)
 @objc public class WebXRNative: NSObject, MTKViewDelegate, ARSessionDelegate {
     
     private let initialOrientation = UIApplication.shared.statusBarOrientation
@@ -43,6 +44,8 @@ extension MTKView : RenderDestinationProvider {}
     public let videoView = MTKView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
     public var session:ARSession?
     public var renderer:Renderer?
+    
+    public var placementAnchor:ARAnchor?
     
     public var onUpdate: (() -> Void)?
     
@@ -76,6 +79,20 @@ extension MTKView : RenderDestinationProvider {}
     
     public func stop() {
         session?.pause()
+    }
+    
+    public func handleTap(point:CGPoint) {
+        guard let query = session?.currentFrame?.raycastQuery(from: point, allowing: .estimatedPlane, alignment: .horizontal)
+        else { return }
+        guard let result = session?.raycast(query).first
+        else { return }
+        if (self.placementAnchor != nil) {
+            session?.remove(anchor:self.placementAnchor!)
+            self.placementAnchor = nil
+        }
+        let anchor = ARAnchor(transform: result.worldTransform)
+        session?.add(anchor: anchor)
+        self.placementAnchor = anchor
     }
     
     public func getXRDataForFrame() {

@@ -15,6 +15,7 @@ public func simdToArray4x4(_ t:simd_float4x4) -> Array<Float> {
  * Please read the Capacitor iOS Plugin Development Guide
  * here: https://capacitorjs.com/docs/plugins/ios
  */
+@available(iOS 14.0, *)
 @objc(XRPlugin)
 public class XRPlugin: CAPPlugin {
     private let implementation = WebXRNative()
@@ -30,11 +31,21 @@ public class XRPlugin: CAPPlugin {
             let rotation = simd_quatf(transform) * simd_quatf(ix: 0, iy: 0, iz: 1, r: -1).normalized
             let projectionMatrix = frame.camera.projectionMatrix(
                 for: interfaceOrientation,
-                viewportSize: self.bridge.getWebView()!.frame.size,
+                   viewportSize: self.bridge!.getWebView()!.frame.size,
                 // TODO: z near/far should be configurabe (as described in the WebXR spec)
                 zNear: 0.001,
                 zFar: 1000
             )
+            
+            let anchor = self.implementation.placementAnchor
+            var anchorPosition = simd_float4(x:0,y:0,z:0,w:0)
+            var anchorRotation = simd_quatf(ix:0,iy:0,iz:0,r:1)
+            
+            if (anchor?.transform != nil) {
+                anchorPosition = anchor!.transform.columns.3
+                anchorRotation = simd_quatf(anchor!.transform)
+            }
+            
             self.notifyListeners("poseDataReceived", data: [
                 "cameraPositionX": position.x,
                 "cameraPositionY": position.y,
@@ -43,13 +54,21 @@ public class XRPlugin: CAPPlugin {
                 "cameraRotationY": rotation.imag.y,
                 "cameraRotationZ": rotation.imag.z,
                 "cameraRotationW": rotation.real,
-                "cameraProjectionMatrix": simdToArray4x4(projectionMatrix)
+                "cameraProjectionMatrix": simdToArray4x4(projectionMatrix),
+                "placed": anchor !== nil,
+                "anchorPositionX": anchorPosition.x,
+                "anchorPositionY": anchorPosition.y,
+                "anchorPositionZ": anchorPosition.z,
+                "anchorRotationX": anchorRotation.imag.x,
+                "anchorRotationY": anchorRotation.imag.y,
+                "anchorRotationZ": anchorRotation.imag.z,
+                "anchorRotationW": anchorRotation.real,
             ])
         }
         // Add video view as a subview of the webview
         let videoView = implementation.videoView
         videoView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        videoView.frame = webView.bounds
+        videoView.frame = webView!.bounds
         let webView = bridge!.getWebView()! as WKWebView
         webView.addSubview(videoView)
         webView.sendSubviewToBack(videoView)
@@ -82,6 +101,22 @@ public class XRPlugin: CAPPlugin {
     }
     
     @objc func handleTap(_ call: CAPPluginCall) {
-        call.unimplemented()
+        DispatchQueue.main.async {
+            let pixelDensity = UIScreen.main.scale
+            guard let bounds = self.webView?.bounds
+            else { return }
+            let x = CGFloat(call.getFloat("x")!) / (bounds.width * pixelDensity)
+            let y = CGFloat(call.getFloat("y")!) / (bounds.height * pixelDensity)
+            self.implementation.handleTap(point: CGPoint(x:x,y:y))
+        }
+        call.resolve(["status": "ok"])
+    }
+    
+    @objc func accessPermission(_ call : CAPPluginCall) {
+        call.resolve(["status": "ok"])
+    }
+    
+    @objc func uploadFiles(_ call : CAPPluginCall) {
+        call.resolve(["status": "ok"])
     }
 }
