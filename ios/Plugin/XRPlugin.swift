@@ -1,5 +1,8 @@
 import Foundation
 import Capacitor
+import Photos
+
+
 
 public func simdToArray4x4(_ t:simd_float4x4) -> Array<Float> {
     let c = t.columns
@@ -19,6 +22,11 @@ public func simdToArray4x4(_ t:simd_float4x4) -> Array<Float> {
 @objc(XRPlugin)
 public class XRPlugin: CAPPlugin {
     private let implementation = WebXRNative()
+    private let videoRec = ScreenRecorder()
+    public var destinationUrl: URL?
+    var sound1: AudioPlayer?
+    var sound2: AudioPlayer?
+    var soundStatus: Bool?
     
     public override func load() {
         implementation.onUpdate = {
@@ -101,22 +109,122 @@ public class XRPlugin: CAPPlugin {
     }
     
     @objc func handleTap(_ call: CAPPluginCall) {
-        DispatchQueue.main.async {
-            let pixelDensity = UIScreen.main.scale
-            guard let bounds = self.webView?.bounds
-            else { return }
-            let x = CGFloat(call.getFloat("x")!) / (bounds.width * pixelDensity)
-            let y = CGFloat(call.getFloat("y")!) / (bounds.height * pixelDensity)
-            self.implementation.handleTap(point: CGPoint(x:x,y:y))
+            DispatchQueue.main.async {
+                let pixelDensity = UIScreen.main.scale
+                guard let bounds = self.webView?.bounds
+                else { return }
+                let x = CGFloat(call.getFloat("x")!) / (bounds.width * pixelDensity)
+                let y = CGFloat(call.getFloat("y")!) / (bounds.height * pixelDensity)
+                self.implementation.handleTap(point: CGPoint(x:y,y:1-x))
+            }
+            call.resolve(["status": "ok"])
         }
-        call.resolve(["status": "ok"])
-    }
     
     @objc func accessPermission(_ call : CAPPluginCall) {
         call.resolve(["status": "ok"])
     }
     
     @objc func uploadFiles(_ call : CAPPluginCall) {
+        let audioPath = call.getString("audioPath") ?? "_"
+        if (audioPath == "https://dev-resources.arcmedia.us/23abe470-cad3-11eb-83c9-676c9a4a5b60/aya_something_low.mp4")
+        {
+            soundStatus = true
+        } else {
+            soundStatus = false
+        }
+        
+        call.resolve(["status": "ok"])
+        
+    }
+    
+    @objc func startRecording(_ call : CAPPluginCall) -> URL? {
+        do {
+            try
+                AVAudioSession.sharedInstance().setCategory(AVAudioSession.Category.playback, options: .mixWithOthers)
+            try AVAudioSession.sharedInstance().setActive(true);
+            sound1 = try AudioPlayer(fileName: "ohno_jugo.mp3")
+            sound2 = try AudioPlayer(fileName: "aya_something.mp3")
+            
+        } catch {
+                print("Sound initialization failed")
+            }
+        if (soundStatus == true) {
+            sound2?.play()
+        }else {
+            sound1?.play()
+        }
+       
+        let docsUrl = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+
+        destinationUrl = docsUrl.appendingPathComponent("ARCvideo.mp4");
+        print(destinationUrl)
+        videoRec.startRecording(to: destinationUrl,
+                                      saveToCameraRoll: false,
+                                      errorHandler: { error in
+                                        debugPrint("Error when recording \(error)")
+                                      })
+       
+        call.resolve(["status": "ok"])
+        return destinationUrl
+    }
+    
+    @objc func stopRecording(_ call : CAPPluginCall) {
+        print(destinationUrl)
+        videoRec.stoprecording(errorHandler: { error in
+          debugPrint("Error when stop recording \(error)")
+        })
+        if(soundStatus == true) {
+            sound2?.fadeOut()
+        }else {
+            sound1?.fadeOut()
+        }
+        
+        var urlString: String = destinationUrl?.absoluteString ?? "_"
+        
+        call.resolve(["status": "ok",
+                      "filePath": urlString
+        ])
+        
+    }
+
+    @objc func saveVideoTo(_ call : CAPPluginCall) {
+        self.saveVideoRequest(errorHandler: { error in
+            debugPrint("Error when save Video \(error)")
+          })
         call.resolve(["status": "ok"])
     }
+
+    @objc func shareMedia(_ call : CAPPluginCall) {
+       
+        call.resolve(["status": "ok"])
+    }
+    
+    private func saveVideoRequest(errorHandler: @escaping (Error) -> Void) {
+      if PHPhotoLibrary.authorizationStatus() == .authorized {
+        self.saveVideo()
+      } else {
+          PHPhotoLibrary.requestAuthorization({ (status) in
+              if status == .authorized {
+                self.saveVideo()
+              } else {
+                errorHandler(WylerError.photoLibraryAccessNotGranted)
+            }
+          })
+      }
+    }
+    
+    private func saveVideo() {
+        PHPhotoLibrary.shared().performChanges({
+        PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: self.destinationUrl!)
+            }) { saved, error in
+            if saved {
+                    let fetchOptions = PHFetchOptions()
+                    fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+                    let fetchResult = PHAsset.fetchAssets(with: .video, options: fetchOptions).firstObject
+                }
+            }
+        
+    }
+    
 }
+         

@@ -10,4 +10,8 @@ CAP_PLUGIN(XRPlugin, "XRPlugin",
            CAP_PLUGIN_METHOD(handleTap, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(accessPermission, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(uploadFiles, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(startRecording, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(stopRecording, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(saveVideoTo, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(shareMedia, CAPPluginReturnPromise);
 )
