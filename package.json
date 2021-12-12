@@ -25,7 +25,7 @@
   "author": "XR3 Group",
   "license": "MIT",
   "devDependencies": {
-    "@capacitor/core": "3.1.2",
+    "@capacitor/core": "3.3.3",
     "@capacitor/ios": "next",
     "@ionic/prettier-config": "2.0.0",
     "@rollup/plugin-node-resolve": "13.0.6",
