@@ -28,7 +28,7 @@
     "@capacitor/core": "3.3.3",
     "@capacitor/ios": "next",
     "@ionic/prettier-config": "2.0.0",
-    "@rollup/plugin-node-resolve": "13.0.6",
+    "@rollup/plugin-node-resolve": "13.1.1",
     "prettier": "2.5.1",
     "rimraf": "3.0.2",
     "swiftlint": "1.0.1",
