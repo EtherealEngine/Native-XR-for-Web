@@ -58,7 +58,7 @@ dependencies {
     implementation 'com.google.ar:core:1.29.0'
     implementation 'de.javagl:obj:0.3.0'
     // implementation 'com.arthenica:mobile-ffmpeg-full:4.4'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.2'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
